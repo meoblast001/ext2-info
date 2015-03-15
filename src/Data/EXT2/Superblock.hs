@@ -9,6 +9,7 @@ module Data.EXT2.Superblock
 , OperatingSystem(..)
 , Superblock(..)
 , fetchSuperblock
+, numBlockGroups
 ) where
 
 import Control.Applicative
@@ -99,3 +100,9 @@ getOS 2 = MASIX
 getOS 3 = FreeBSD
 getOS 4 = Other
 getOS _ = error "Unknown operating system."
+
+numBlockGroups :: Superblock -> Integer
+numBlockGroups superblock =
+  let numBlocksF = fromIntegral $ numBlocks superblock
+      numBlocksPerGroupF = fromIntegral $ numBlocksPerGroup superblock
+  in ceiling (numBlocksF / numBlocksPerGroupF)
