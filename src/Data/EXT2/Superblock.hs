@@ -26,7 +26,7 @@ data OperatingSystem = Linux | HURD | MASIX | FreeBSD | Other deriving (Show)
 
 data Superblock =
   Superblock
-  { numINodes :: Integer
+  { numInodes :: Integer
   , numBlocks :: Integer
   , numSuReservedBlocks :: Integer
   , numUnallocBlocks :: Integer
