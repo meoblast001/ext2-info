@@ -15,6 +15,7 @@ module Data.EXT2.Superblock
 import Control.Applicative
 import Data.Binary.Get
 import qualified Data.ByteString.Lazy as LBS
+import Data.EXT2.Info.Types (EXT2Error(..))
 import Data.UnixTime
 import Foreign.C.Types
 import System.IO
@@ -53,7 +54,7 @@ data Superblock =
   , superGroupID :: Integer }
   deriving (Show)
 
-fetchSuperblock :: Handle -> IO Superblock
+fetchSuperblock :: Handle -> IO (Either EXT2Error Superblock)
 fetchSuperblock handle = do
   hSeek handle AbsoluteSeek 1024
   checkIdent <$> runGet getSuperblock <$> LBS.hGetContents handle
@@ -77,10 +78,10 @@ getSuperblock = do
              <*> (createTime <$> (fromIntegral <$> getWord32le))
              <*> (getOS <$> getInt) <*> getInt <*> getShort <*> getShort
 
-checkIdent :: Superblock -> Superblock
+checkIdent :: Superblock -> Either EXT2Error Superblock
 checkIdent superblock
-  | signature superblock == 0xef53 = superblock
-  | otherwise = error ("Invalid identifier " ++ show (signature superblock))
+  | signature superblock == 0xef53 = Right superblock
+  | otherwise = Left InvalidMagicNumber
 
 getFsState :: Integer -> FileSystemState
 getFsState 1 = StateClean

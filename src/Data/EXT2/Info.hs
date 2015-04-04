@@ -7,6 +7,7 @@ module Data.EXT2.Info ( ext2Info ) where
 
 import Control.Monad
 import Data.EXT2.BlockGroupDescriptor
+import Data.EXT2.Info.Types (EXT2Error(..))
 import Data.EXT2.Superblock
 import Data.EXT2.UsageBitmaps
 import System.IO
@@ -14,6 +15,10 @@ import System.IO
 ext2Info :: Handle -> IO ()
 ext2Info handle = do
   superblock <- fetchSuperblock handle
+  either (putStrLn . show) (printSuperblockInfo handle) superblock
+
+printSuperblockInfo :: Handle -> Superblock -> IO ()
+printSuperblockInfo handle superblock = do
   putStrLn "Superblock is:"
   putStrLn $ show superblock
   bgdTable <- fetchBGDT superblock handle
