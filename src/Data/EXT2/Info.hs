@@ -8,6 +8,7 @@ module Data.EXT2.Info ( ext2Info ) where
 import Control.Monad
 import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Info.Types (EXT2Error(..))
+import Data.EXT2.Inode
 import Data.EXT2.Superblock
 import Data.EXT2.UsageBitmaps
 import System.IO
@@ -31,3 +32,6 @@ printBGDInfo handle superblock bgd num = do
   (blockUsage, inodeUsage) <- fetchUsageBitmaps superblock bgd handle
   putStrLn (" - Block Usage Bitmap: " ++ show blockUsage)
   putStrLn (" - Inode Usage Bitmap: " ++ show inodeUsage)
+  inodeTable <- fetchInodeTable superblock bgd handle
+  putStrLn " - Inode Table:"
+  mapM_ (\inode -> putStrLn ("   - " ++ show inode)) inodeTable

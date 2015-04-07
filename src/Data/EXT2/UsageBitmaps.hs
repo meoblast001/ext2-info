@@ -25,11 +25,13 @@ data BlockUsageBitmap = BlockUsageBitmap Integer [Word8]
 data InodeUsageBitmap = InodeUsageBitmap Integer [Word8]
 
 instance Show BlockUsageBitmap where
-  show bm =
-    concat $ map (\bool -> if bool then "1" else "0") $ blockUsageBool bm
+  show bm@(BlockUsageBitmap len _) =
+    (concat $ map (\bool -> if bool then "1" else "0") $ blockUsageBool bm) ++
+    "(Len: " ++ show len ++ ")"
 instance Show InodeUsageBitmap where
-  show bm =
-    concat $ map (\bool -> if bool then "1" else "0") $ inodeUsageBool bm
+  show bm@(InodeUsageBitmap len _) =
+    (concat $ map (\bool -> if bool then "1" else "0") $ inodeUsageBool bm) ++
+    "(Len: " ++ show len ++ ")"
 
 blockUsageBool :: BlockUsageBitmap -> [Bool]
 blockUsageBool (BlockUsageBitmap len words) =

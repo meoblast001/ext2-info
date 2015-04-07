@@ -16,8 +16,8 @@ import Control.Applicative
 import Data.Binary.Get
 import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.Info.Types (EXT2Error(..))
+import Data.EXT2.Util (createTime)
 import Data.UnixTime
-import Foreign.C.Types
 import System.IO
 
 data FileSystemState = StateClean | StateErrors deriving (Show)
@@ -37,7 +37,7 @@ data Superblock =
   , fragmentSize :: Integer
   , numBlocksPerGroup :: Integer
   , numFragmentsPerGroup :: Integer
-  , numINodesPerGroup :: Integer
+  , numInodesPerGroup :: Integer
   , lastMountTime :: UnixTime
   , lastWrittenTime :: UnixTime
   , numMountsSinceFsck :: Integer
@@ -61,22 +61,19 @@ fetchSuperblock handle = do
 
 getSuperblock :: Get Superblock
 getSuperblock = do
-  let getInt = toInteger <$> getWord32le
-      getShort = toInteger <$> getWord16le
-      createTime seconds = UnixTime (CTime seconds) 0
   Superblock <$> getInt <*> getInt <*> getInt <*> getInt <*> getInt <*> getInt
              <*> ((\x -> 2 ^ (x + 10)) <$> getInt)
              <*> ((\x -> 2 ^ (x + 10)) <$> getInt)
              <*> getInt <*> getInt <*> getInt
-             <*> (createTime <$> (fromIntegral <$> getWord32le))
-             <*> (createTime <$> (fromIntegral <$> getWord32le))
+             <*> getTime <*> getTime
              <*> getShort <*> getShort <*> getShort
              <*> (getFsState <$> getShort)
              <*> (getErrorHandlingMethod <$> getShort)
-             <*> getShort
-             <*> (createTime <$> (fromIntegral <$> getWord32le))
-             <*> (createTime <$> (fromIntegral <$> getWord32le))
+             <*> getShort <*> getTime <*> getTime
              <*> (getOS <$> getInt) <*> getInt <*> getShort <*> getShort
+  where getInt = toInteger <$> getWord32le
+        getShort = toInteger <$> getWord16le
+        getTime = createTime <$> (fromIntegral <$> getWord32le)
 
 checkIdent :: Superblock -> Either EXT2Error Superblock
 checkIdent superblock
