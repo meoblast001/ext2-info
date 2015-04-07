@@ -7,6 +7,7 @@ module Data.EXT2.Inode
 ( InodeMode(..)
 , Inode(..)
 , fetchInodeTable
+, usedInodes
 ) where
 
 import Control.Applicative
@@ -17,6 +18,7 @@ import qualified Data.ByteString as SBS
 import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Superblock
+import Data.EXT2.UsageBitmaps
 import Data.EXT2.Util (createTime)
 import Data.Maybe
 import Data.UnixTime
@@ -50,7 +52,8 @@ data Inode =
   , blocks512 :: Integer
   , flags :: Integer
   , osDependantValue :: SBS.ByteString
-  , blocks :: [Integer]
+  , directBlocks :: [Integer]
+  , indirectBlocks :: (Integer, Integer, Integer)
   , generation :: Integer
   , fileAcl :: Integer
   , dirAcl :: Integer
@@ -70,9 +73,14 @@ getInodeTable remaining = do
   inode <- Inode <$> maybeToList <$> (intToFileFormatMode <$> getShort)
                  <*> getShort <*> getInt <*> getTime <*> getTime <*> getTime
                  <*> getTime <*> getShort <*> getShort <*> getShort <*> getInt
-                 <*> getByteString 4 <*> replicateM 15 getInt <*> getInt
-                 <*> getInt <*> getInt <*> getInt <*> getByteString 12
+                 <*> getByteString 4 <*> replicateM 12 getInt
+                 <*> liftA3 (,,) getInt getInt getInt <*> getInt <*> getInt
+                 <*> getInt <*> getInt <*> getByteString 12
   (inode:) <$> (getInodeTable (remaining - 1))
   where getInt = toInteger <$> getWord32le
         getShort = toInteger <$> getWord16le
         getTime = createTime <$> (fromIntegral <$> getWord32le)
+
+usedInodes :: InodeUsageBitmap -> [Inode] -> [Inode]
+usedInodes inodeUsage allInodes =
+  map fst $ filter snd $ zip allInodes $ inodeUsageBool inodeUsage
