@@ -10,6 +10,7 @@ module Data.EXT2.Superblock
 , Superblock(..)
 , fetchSuperblock
 , numBlockGroups
+, blockOffset
 ) where
 
 import Control.Applicative
@@ -104,3 +105,6 @@ numBlockGroups superblock =
   let numBlocksF = fromIntegral $ numBlocks superblock
       numBlocksPerGroupF = fromIntegral $ numBlocksPerGroup superblock
   in ceiling (numBlocksF / numBlocksPerGroupF)
+
+blockOffset :: Superblock -> Integer -> Integer
+blockOffset sb block = 1024 + (block - 1) * blockSize sb

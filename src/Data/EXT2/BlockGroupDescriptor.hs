@@ -11,6 +11,7 @@ module Data.EXT2.BlockGroupDescriptor
 import Control.Applicative
 import Control.Monad
 import Data.Binary.Get
+import qualified Data.ByteString as SBS
 import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.Superblock
 import System.IO
@@ -22,7 +23,9 @@ data BlockGroupDescriptor =
   , inodeTblStartAddr :: Integer
   , numUnallocBlocks :: Integer
   , numUnallocInodes :: Integer
-  , numDirectories :: Integer }
+  , numDirectories :: Integer
+  , bgdPad :: SBS.ByteString
+  , bgdReserve :: SBS.ByteString }
   deriving (Show)
 
 fetchBGDT :: Superblock -> Handle -> IO [BlockGroupDescriptor]
@@ -41,5 +44,6 @@ getBlockGroupDescriptor = do
   let getInt = toInteger <$> getWord32le
       getShort = toInteger <$> getWord16le
   bgd <- BlockGroupDescriptor <$> getInt <*> getInt <*> getInt <*> getShort
-                              <*> getShort <*> getShort
+                              <*> getShort <*> getShort <*> getByteString 2
+                              <*> getByteString 12
   replicateM 14 getWord8 >> return bgd

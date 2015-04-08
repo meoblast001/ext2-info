@@ -63,8 +63,7 @@ data Inode =
 
 fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
-  let tableLoc = blockSize sb * inodeTblStartAddr bgd
-  hSeek handle AbsoluteSeek tableLoc
+  hSeek handle AbsoluteSeek $ blockOffset sb $ inodeTblStartAddr bgd
   runGet (getInodeTable $ numInodesPerGroup sb) <$> LBS.hGetContents handle
 
 getInodeTable :: Integer -> Get [Inode]

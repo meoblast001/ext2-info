@@ -44,7 +44,7 @@ inodeUsageBool (InodeUsageBitmap len words) =
 fetchUsageBitmaps :: Superblock -> BlockGroupDescriptor -> Handle ->
                      IO (BlockUsageBitmap, InodeUsageBitmap)
 fetchUsageBitmaps sb bgd handle = do
-  hSeek handle AbsoluteSeek (blockSize sb * blockUsageAddr bgd)
+  hSeek handle AbsoluteSeek $ blockOffset sb $ blockUsageAddr bgd
   blockUsage <- runGet (getBlockUsageBitmap sb) <$> LBS.hGetContents handle
   hSeek handle AbsoluteSeek (blockSize sb * inodeUsageAddr bgd)
   inodeUsage <- runGet (getInodeUsageBitmap sb) <$> LBS.hGetContents handle
