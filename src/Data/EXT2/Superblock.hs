@@ -55,10 +55,13 @@ data Superblock =
   , superGroupID :: Integer }
   deriving (Show)
 
+lenSuperblock :: Integral a => a
+lenSuperblock = 1024
+
 fetchSuperblock :: Handle -> IO (Either EXT2Error Superblock)
 fetchSuperblock handle = do
   hSeek handle AbsoluteSeek 1024
-  checkIdent <$> runGet getSuperblock <$> LBS.hGetContents handle
+  checkIdent <$> runGet getSuperblock <$> LBS.hGet handle lenSuperblock
 
 getSuperblock :: Get Superblock
 getSuperblock = do

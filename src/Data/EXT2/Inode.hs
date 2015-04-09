@@ -61,10 +61,15 @@ data Inode =
   , osDependantValue2 :: SBS.ByteString }
   deriving (Show)
 
+lenInode :: Integral a => a
+lenInode = 128
+
 fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
+  let inodeTableSize = fromIntegral (numInodesPerGroup sb * lenInode)
   hSeek handle AbsoluteSeek $ blockOffset sb $ inodeTblStartAddr bgd
-  runGet (getInodeTable $ numInodesPerGroup sb) <$> LBS.hGetContents handle
+  runGet (getInodeTable $ numInodesPerGroup sb) <$>
+         LBS.hGet handle inodeTableSize
 
 getInodeTable :: Integer -> Get [Inode]
 getInodeTable 0 = return []

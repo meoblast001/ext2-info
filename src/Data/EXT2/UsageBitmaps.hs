@@ -24,6 +24,9 @@ import System.IO
 data BlockUsageBitmap = BlockUsageBitmap Integer [Word8]
 data InodeUsageBitmap = InodeUsageBitmap Integer [Word8]
 
+lenUsageBitmaps :: Integral a => Superblock -> a
+lenUsageBitmaps = fromIntegral . blockSize
+
 instance Show BlockUsageBitmap where
   show bm@(BlockUsageBitmap len _) =
     (concat $ map (\bool -> if bool then "1" else "0") $ blockUsageBool bm) ++
@@ -45,9 +48,11 @@ fetchUsageBitmaps :: Superblock -> BlockGroupDescriptor -> Handle ->
                      IO (BlockUsageBitmap, InodeUsageBitmap)
 fetchUsageBitmaps sb bgd handle = do
   hSeek handle AbsoluteSeek $ blockOffset sb $ blockUsageAddr bgd
-  blockUsage <- runGet (getBlockUsageBitmap sb) <$> LBS.hGetContents handle
+  blockUsage <- runGet (getBlockUsageBitmap sb) <$>
+                LBS.hGet handle (lenUsageBitmaps sb)
   hSeek handle AbsoluteSeek (blockSize sb * inodeUsageAddr bgd)
-  inodeUsage <- runGet (getInodeUsageBitmap sb) <$> LBS.hGetContents handle
+  inodeUsage <- runGet (getInodeUsageBitmap sb) <$>
+                LBS.hGet handle (lenUsageBitmaps sb)
   return (blockUsage, inodeUsage)
 
 getBlockUsageBitmap :: Superblock -> Get BlockUsageBitmap

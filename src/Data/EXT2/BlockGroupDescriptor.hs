@@ -28,12 +28,17 @@ data BlockGroupDescriptor =
   , bgdReserve :: SBS.ByteString }
   deriving (Show)
 
+lenBlockGroupDescriptor :: Integral a => a
+lenBlockGroupDescriptor = 32
+
 fetchBGDT :: Superblock -> Handle -> IO [BlockGroupDescriptor]
 fetchBGDT superblock handle = do
   let bSize = blockSize superblock
       bgdtLoc = if bSize == 1024 then bSize * 2 else bSize
+      bgdtSize =
+        fromIntegral (numBlockGroups superblock * lenBlockGroupDescriptor)
   hSeek handle AbsoluteSeek bgdtLoc
-  runGet (getBGDT $ numBlockGroups superblock) <$> LBS.hGetContents handle
+  runGet (getBGDT $ numBlockGroups superblock) <$> LBS.hGet handle bgdtSize
 
 getBGDT :: Integer -> Get [BlockGroupDescriptor]
 getBGDT numBlockGroups =
@@ -43,7 +48,6 @@ getBlockGroupDescriptor :: Get BlockGroupDescriptor
 getBlockGroupDescriptor = do
   let getInt = toInteger <$> getWord32le
       getShort = toInteger <$> getWord16le
-  bgd <- BlockGroupDescriptor <$> getInt <*> getInt <*> getInt <*> getShort
-                              <*> getShort <*> getShort <*> getByteString 2
-                              <*> getByteString 12
-  replicateM 14 getWord8 >> return bgd
+  BlockGroupDescriptor <$> getInt <*> getInt <*> getInt <*> getShort
+                       <*> getShort <*> getShort <*> getByteString 2
+                       <*> getByteString 12
