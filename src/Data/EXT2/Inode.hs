@@ -29,14 +29,15 @@ data InodeMode = -- File Format.
                  DirectoryInode | CharDevInode | FifoInode deriving (Show)
 
 intToFileFormatMode :: Integer -> Maybe InodeMode
-intToFileFormatMode 0xc000 = Just SocketInode
-intToFileFormatMode 0xa000 = Just SymLinkInode
-intToFileFormatMode 0x8000 = Just RegFileInode
-intToFileFormatMode 0x6000 = Just BlockDevInode
-intToFileFormatMode 0x4000 = Just DirectoryInode
-intToFileFormatMode 0x2000 = Just CharDevInode
-intToFileFormatMode 0x1000 = Just FifoInode
-intToFileFormatMode _ = Nothing
+intToFileFormatMode input
+  | (input .&. 0xf000) == 0xc000 = Just SocketInode
+  | (input .&. 0xf000) == 0xa000 = Just SymLinkInode
+  | (input .&. 0xf000) == 0x8000 = Just RegFileInode
+  | (input .&. 0xf000) == 0x6000 = Just BlockDevInode
+  | (input .&. 0xf000) == 0x4000 = Just DirectoryInode
+  | (input .&. 0xf000) == 0x2000 = Just CharDevInode
+  | (input .&. 0xf000) == 0x1000 = Just FifoInode
+  | otherwise = Nothing
 
 data Inode =
   Inode

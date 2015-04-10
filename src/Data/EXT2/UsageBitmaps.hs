@@ -50,7 +50,7 @@ fetchUsageBitmaps sb bgd handle = do
   hSeek handle AbsoluteSeek $ blockOffset sb $ blockUsageAddr bgd
   blockUsage <- runGet (getBlockUsageBitmap sb) <$>
                 LBS.hGet handle (lenUsageBitmaps sb)
-  hSeek handle AbsoluteSeek (blockSize sb * inodeUsageAddr bgd)
+  hSeek handle AbsoluteSeek $ blockOffset sb $ inodeUsageAddr bgd
   inodeUsage <- runGet (getInodeUsageBitmap sb) <$>
                 LBS.hGet handle (lenUsageBitmaps sb)
   return (blockUsage, inodeUsage)
