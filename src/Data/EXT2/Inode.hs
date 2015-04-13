@@ -69,19 +69,17 @@ fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
   let inodeTableSize = fromIntegral (numInodesPerGroup sb * lenInode)
   hSeek handle AbsoluteSeek $ blockOffset sb $ inodeTblStartAddr bgd
-  runGet (getInodeTable $ numInodesPerGroup sb) <$>
-         LBS.hGet handle inodeTableSize
+  replicateM (fromIntegral (numInodesPerGroup sb))
+             (runGet (getInode) <$> LBS.hGet handle lenInode)
 
-getInodeTable :: Integer -> Get [Inode]
-getInodeTable 0 = return []
-getInodeTable remaining = do
-  inode <- Inode <$> maybeToList <$> (intToFileFormatMode <$> getShort)
-                 <*> getShort <*> getInt <*> getTime <*> getTime <*> getTime
-                 <*> getTime <*> getShort <*> getShort <*> getShort <*> getInt
-                 <*> getByteString 4 <*> replicateM 12 getInt
-                 <*> liftA3 (,,) getInt getInt getInt <*> getInt <*> getInt
-                 <*> getInt <*> getInt <*> getByteString 12
-  (inode:) <$> (getInodeTable (remaining - 1))
+getInode :: Get Inode
+getInode = do
+  Inode <$> maybeToList <$> (intToFileFormatMode <$> getShort)
+        <*> getShort <*> getInt <*> getTime <*> getTime <*> getTime
+        <*> getTime <*> getShort <*> getShort <*> getShort <*> getInt
+        <*> getByteString 4 <*> replicateM 12 getInt
+        <*> liftA3 (,,) getInt getInt getInt <*> getInt <*> getInt
+        <*> getInt <*> getInt <*> getByteString 12
   where getInt = toInteger <$> getWord32le
         getShort = toInteger <$> getWord16le
         getTime = createTime <$> (fromIntegral <$> getWord32le)
