@@ -15,7 +15,7 @@ module Data.EXT2.Info ( ext2Info ) where
 
 import Control.Monad
 import Data.EXT2.BlockGroupDescriptor
-import Data.EXT2.Info.Types (EXT2Error(..))
+--import Data.EXT2.Info.Types (EXT2Error(..))
 import Data.EXT2.Inode
 import Data.EXT2.Superblock
 import Data.EXT2.UsageBitmaps
@@ -38,7 +38,7 @@ printBGDInfo :: Handle -> Superblock -> BlockGroupDescriptor -> Integer -> IO ()
 printBGDInfo handle superblock bgd num = do
   putStrLn ("Block Group Descriptor " ++ show num)
   print bgd
-  (blockUsage, inodeUsage) <- fetchUsageBitmaps superblock bgd handle
+  (_, inodeUsage) <- fetchUsageBitmaps superblock bgd handle
   inodeTable <- usedInodes inodeUsage <$> fetchInodeTable superblock bgd handle
   putStrLn " - Inode Table:"
   mapM_ (\inode -> putStrLn ("   - " ++ show inode)) inodeTable

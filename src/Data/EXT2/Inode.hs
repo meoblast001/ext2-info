@@ -33,9 +33,10 @@ import Data.Maybe
 import Data.UnixTime
 import System.IO
 
-data InodeMode = -- File Format.
-                 SocketInode | SymLinkInode | RegFileInode | BlockDevInode |
-                 DirectoryInode | CharDevInode | FifoInode deriving (Show)
+ -- | File Format.
+data InodeMode =
+  SocketInode | SymLinkInode | RegFileInode | BlockDevInode |
+  DirectoryInode | CharDevInode | FifoInode deriving (Eq, Show)
 
 intToFileFormatMode :: Integer -> Maybe InodeMode
 intToFileFormatMode input
@@ -69,7 +70,7 @@ data Inode =
   , dirAcl :: Integer
   , faddr :: Integer
   , osDependantValue2 :: SBS.ByteString }
-  deriving (Show)
+  deriving (Eq, Show)
 
 lenInode :: Integral a => a
 lenInode = 128

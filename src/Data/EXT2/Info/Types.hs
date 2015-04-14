@@ -29,10 +29,10 @@ data EXT2Info =
   , numDirectories :: Integer
   , numBlockGroups :: Integer
   , blockSize :: ByteAmount }
-  deriving (Show)
+  deriving (Eq, Show)
 
 data EXT2Error = InvalidMagicNumber | InconsistentSuperblocks |
                  InconsistentBGDT | UnreachableUsedInode |
                  ReachableUnusedInode | DirectoryInodeUnused |
                  UsedDataBlockWithoutInode | UnusedDataBlockWithInode |
-                 InvalidFileCount | InvalidDirectoryCount deriving (Show)
+                 InvalidFileCount | InvalidDirectoryCount deriving (Eq, Show)

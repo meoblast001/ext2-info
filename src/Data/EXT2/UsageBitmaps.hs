@@ -26,8 +26,8 @@ import Data.Functor
 import Data.Word
 import System.IO
 
-data BlockUsageBitmap = BlockUsageBitmap Integer [Word8]
-data InodeUsageBitmap = InodeUsageBitmap Integer [Word8]
+data BlockUsageBitmap = BlockUsageBitmap Integer [Word8] deriving (Eq)
+data InodeUsageBitmap = InodeUsageBitmap Integer [Word8] deriving (Eq)
 
 lenUsageBitmaps :: Integral a => Superblock -> a
 lenUsageBitmaps = fromIntegral . blockSize
@@ -43,12 +43,12 @@ instance Show InodeUsageBitmap where
     "(Len: " ++ show len ++ ")"
 
 blockUsageBool :: BlockUsageBitmap -> [Bool]
-blockUsageBool (BlockUsageBitmap len words) =
-  take (fromIntegral len) $ concatMap toListBE words
+blockUsageBool (BlockUsageBitmap len words') =
+  take (fromIntegral len) $ concatMap toListBE words'
 
 inodeUsageBool :: InodeUsageBitmap -> [Bool]
-inodeUsageBool (InodeUsageBitmap len words) =
-  take (fromIntegral len) $ concatMap toListBE words
+inodeUsageBool (InodeUsageBitmap len words') =
+  take (fromIntegral len) $ concatMap toListBE words'
 
 fetchUsageBitmaps :: Superblock -> BlockGroupDescriptor -> Handle ->
                      IO (BlockUsageBitmap, InodeUsageBitmap)

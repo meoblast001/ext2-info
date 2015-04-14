@@ -34,7 +34,7 @@ data BlockGroupDescriptor =
   , numDirectories :: Integer
   , bgdPad :: SBS.ByteString
   , bgdReserve :: SBS.ByteString }
-  deriving (Show)
+  deriving (Eq, Show)
 
 lenBlockGroupDescriptor :: Integral a => a
 lenBlockGroupDescriptor = 32
@@ -49,8 +49,8 @@ fetchBGDT superblock handle = do
   runGet (getBGDT $ numBlockGroups superblock) <$> LBS.hGet handle bgdtSize
 
 getBGDT :: Integer -> Get [BlockGroupDescriptor]
-getBGDT numBlockGroups =
-  replicateM (fromInteger numBlockGroups) getBlockGroupDescriptor
+getBGDT blockGroups =
+  replicateM (fromInteger blockGroups) getBlockGroupDescriptor
 
 getBlockGroupDescriptor :: Get BlockGroupDescriptor
 getBlockGroupDescriptor = do

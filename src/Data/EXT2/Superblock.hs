@@ -28,10 +28,10 @@ import Data.EXT2.Util (createTime)
 import Data.UnixTime
 import System.IO
 
-data FileSystemState = StateClean | StateErrors deriving (Show)
-data ErrorHandlingMethod = MethodIgnore | MethodRemount | MethodPanic
-  deriving (Show)
-data OperatingSystem = Linux | HURD | MASIX | FreeBSD | Other deriving (Show)
+data FileSystemState = StateClean | StateErrors deriving (Eq, Show)
+data ErrorHandlingMethod =
+  MethodIgnore | MethodRemount | MethodPanic deriving (Eq, Show)
+data OperatingSystem = Linux | HURD | MASIX | FreeBSD | Other deriving (Eq, Show)
 
 data Superblock =
   Superblock
@@ -60,7 +60,7 @@ data Superblock =
   , majorVersion :: Integer
   , superUserID :: Integer
   , superGroupID :: Integer }
-  deriving (Show)
+  deriving (Eq, Show)
 
 lenSuperblock :: Integral a => a
 lenSuperblock = 1024
