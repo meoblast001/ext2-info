@@ -16,6 +16,7 @@ module Data.EXT2.Inode
 , Inode(..)
 , fetchInodeTable
 , usedInodes
+, fetchDataBlockNumbers
 ) where
 
 import Control.Applicative
@@ -95,3 +96,41 @@ getInode = do
 usedInodes :: InodeUsageBitmap -> [Inode] -> [Inode]
 usedInodes inodeUsage allInodes =
   map fst $ filter snd $ zip allInodes $ inodeUsageBool inodeUsage
+
+fetchDataBlockNumbers :: Handle -> Superblock -> Inode -> IO [Integer]
+fetchDataBlockNumbers handle sb inode = do
+  let usedDirect = fst $ break (== 0) $ directBlocks inode
+      (indir1Num, indir2Num, indir3Num) = indirectBlocks inode
+  indir1 <- fetchIndirectBlock1 handle sb indir1Num
+  indir2 <- fetchIndirectBlock2 handle sb indir2Num
+  indir3 <- fetchIndirectBlock3 handle sb indir3Num
+  return (usedDirect ++ indir1 ++ indir2 ++ indir3)
+
+get32IntBlockTillZero :: Superblock -> Get [Integer]
+get32IntBlockTillZero sb = do
+  let num32Integers = floor (fromIntegral (blockSize sb) / 4)
+      getInt = toInteger <$> getWord32le
+  fst <$> break (== 0) <$> replicateM num32Integers getInt
+
+fetchIndirectBlock1 :: Handle -> Superblock -> Integer -> IO [Integer]
+fetchIndirectBlock1 _ _ 0 = return []
+fetchIndirectBlock1 handle sb blockNum = do
+  hSeek handle AbsoluteSeek $ blockOffset sb blockNum
+  runGet (get32IntBlockTillZero sb) <$>
+         LBS.hGet handle (fromInteger $ blockSize sb)
+
+fetchIndirectBlock2 :: Handle -> Superblock -> Integer -> IO [Integer]
+fetchIndirectBlock2 _ _ 0 = return []
+fetchIndirectBlock2 handle sb blockNum = do
+  hSeek handle AbsoluteSeek $ blockOffset sb blockNum
+  indirectBlocks <- runGet (get32IntBlockTillZero sb) <$>
+                    LBS.hGet handle (fromInteger $ blockSize sb)
+  concat <$> mapM (fetchIndirectBlock1 handle sb) indirectBlocks
+
+fetchIndirectBlock3 :: Handle -> Superblock -> Integer -> IO [Integer]
+fetchIndirectBlock3 _ _ 0 = return []
+fetchIndirectBlock3 handle sb blockNum = do
+  hSeek handle AbsoluteSeek $ blockOffset sb blockNum
+  indirectBlocks <- runGet (get32IntBlockTillZero sb) <$>
+                    LBS.hGet handle (fromInteger $ blockSize sb)
+  concat <$> mapM (fetchIndirectBlock2 handle sb) indirectBlocks
