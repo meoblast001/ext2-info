@@ -1,8 +1,13 @@
-{-
-Copyright (C) 2015 Braden Walters
-This file is licensed under the MIT Expat License. See LICENSE.txt.
--}
-
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Data.EXT2.UsageBitmaps
+-- Copyright   : (C) 2015 Braden Walters,
+--                   2015 Ricky Elrod
+-- License     : MIT (see LICENSE file)
+-- Maintainer  : Braden Walters <vc@braden-walters.info>,
+--               Ricky Elrod <ricky@elrod.me>
+-- Stability   : experimental
+-- Portability : ghc
 module Data.EXT2.UsageBitmaps
 ( BlockUsageBitmap(..)
 , InodeUsageBitmap(..)

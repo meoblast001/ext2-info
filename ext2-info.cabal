@@ -1,11 +1,13 @@
-name: ext2-info
-version: 1.0
-license: MIT
-license-file: LICENSE
-author: Braden Walters
-maintainer: vc@braden-walters.info
-category: Data
-build-type: Simple
+name:          ext2-info
+version:       1.0
+license:       MIT
+license-file:  LICENSE
+author:        Braden Walters <vc@braden-walters.info>,
+               Ricky Elrod <ricky@elrod.me>
+maintainer:    Braden Walters <vc@braden-walters.info>,
+               Ricky Elrod <ricky@elrod.me>
+category:      Data
+build-type:    Simple
 cabal-version: >= 1.10
 
 library

@@ -1,8 +1,16 @@
-{-
-Copyright (C) 2015 Braden Walters
-This file is licensed under the MIT Expat License. See LICENSE.txt.
--}
-
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Data.EXT2.Inode
+-- Copyright   : (C) 2015 Braden Walters,
+--                   2015 Ricky Elrod
+-- License     : MIT (see LICENSE file)
+-- Maintainer  : Braden Walters <vc@braden-walters.info>,
+--               Ricky Elrod <ricky@elrod.me>
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- This module contains functions and types for dealing with ext2\'s concept of
+-- inodes.
 module Data.EXT2.Inode
 ( InodeMode(..)
 , Inode(..)
