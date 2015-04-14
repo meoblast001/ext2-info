@@ -71,7 +71,7 @@ fetchSuperblock handle = do
   checkIdent <$> runGet getSuperblock <$> LBS.hGet handle lenSuperblock
 
 getSuperblock :: Get Superblock
-getSuperblock = do
+getSuperblock =
   Superblock <$> getInt <*> getInt <*> getInt <*> getInt <*> getInt <*> getInt
              <*> ((\x -> 2 ^ (x + 10)) <$> getInt)
              <*> ((\x -> 2 ^ (x + 10)) <$> getInt)

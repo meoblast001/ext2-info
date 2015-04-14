@@ -79,10 +79,10 @@ fetchInodeTable sb bgd handle = do
   let inodeTableSize = fromIntegral (numInodesPerGroup sb * lenInode)
   hSeek handle AbsoluteSeek $ blockOffset sb $ inodeTblStartAddr bgd
   replicateM (fromIntegral (numInodesPerGroup sb))
-             (runGet (getInode) <$> LBS.hGet handle lenInode)
+             (runGet getInode <$> LBS.hGet handle lenInode)
 
 getInode :: Get Inode
-getInode = do
+getInode =
   Inode <$> maybeToList <$> (intToFileFormatMode <$> getShort)
         <*> getShort <*> getInt <*> getTime <*> getTime <*> getTime
         <*> getTime <*> getShort <*> getShort <*> getShort <*> getInt
@@ -99,7 +99,7 @@ usedInodes inodeUsage allInodes =
 
 fetchDataBlockNumbers :: Handle -> Superblock -> Inode -> IO [Integer]
 fetchDataBlockNumbers handle sb inode = do
-  let usedDirect = fst $ break (== 0) $ directBlocks inode
+  let usedDirect = takeWhile (not . (== 0)) (directBlocks inode)
       (indir1Num, indir2Num, indir3Num) = indirectBlocks inode
   indir1 <- fetchIndirectBlock1 handle sb indir1Num
   indir2 <- fetchIndirectBlock2 handle sb indir2Num

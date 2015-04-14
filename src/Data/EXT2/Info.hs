@@ -25,19 +25,19 @@ import System.IO
 ext2Info :: Handle -> IO ()
 ext2Info handle = do
   superblock <- fetchSuperblock handle
-  either (putStrLn . show) (printSuperblockInfo handle) superblock
+  either print (printSuperblockInfo handle) superblock
 
 printSuperblockInfo :: Handle -> Superblock -> IO ()
 printSuperblockInfo handle superblock = do
   putStrLn "Superblock is:"
-  putStrLn $ show superblock
+  print superblock
   bgdTable <- fetchBGDT superblock handle
   zipWithM_ (printBGDInfo handle superblock) bgdTable [0..]
 
 printBGDInfo :: Handle -> Superblock -> BlockGroupDescriptor -> Integer -> IO ()
 printBGDInfo handle superblock bgd num = do
   putStrLn ("Block Group Descriptor " ++ show num)
-  putStrLn $ show bgd
+  print bgd
   (blockUsage, inodeUsage) <- fetchUsageBitmaps superblock bgd handle
   inodeTable <- usedInodes inodeUsage <$> fetchInodeTable superblock bgd handle
   putStrLn " - Inode Table:"

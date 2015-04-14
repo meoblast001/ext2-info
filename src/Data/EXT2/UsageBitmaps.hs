@@ -34,11 +34,12 @@ lenUsageBitmaps = fromIntegral . blockSize
 
 instance Show BlockUsageBitmap where
   show bm@(BlockUsageBitmap len _) =
-    (concat $ map (\bool -> if bool then "1" else "0") $ blockUsageBool bm) ++
+    concatMap (\bool -> if bool then "1" else "0") (blockUsageBool bm) ++
     "(Len: " ++ show len ++ ")"
+
 instance Show InodeUsageBitmap where
   show bm@(InodeUsageBitmap len _) =
-    (concat $ map (\bool -> if bool then "1" else "0") $ inodeUsageBool bm) ++
+    concatMap (\bool -> if bool then "1" else "0") (inodeUsageBool bm) ++
     "(Len: " ++ show len ++ ")"
 
 blockUsageBool :: BlockUsageBitmap -> [Bool]
