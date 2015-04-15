@@ -16,6 +16,7 @@ module Data.EXT2.Inode
 , Inode(..)
 , fetchInodeTable
 , usedInodes
+, fetchInodeBlocks
 , fetchDataBlockNumbers
 ) where
 
@@ -78,7 +79,6 @@ lenInode = 128
 
 fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
-  --let inodeTableSize = fromIntegral (numInodesPerGroup sb * lenInode)
   hSeek handle AbsoluteSeek $ blockOffset sb $ inodeTblStartAddr bgd
   replicateM (sb ^. inodesPerGroup . to fromIntegral)
              (runGet getInode <$> LBS.hGet handle lenInode)
@@ -98,6 +98,14 @@ getInode =
 usedInodes :: InodeUsageBitmap -> [Inode] -> [Inode]
 usedInodes inodeUsage allInodes =
   map fst $ filter snd $ zip allInodes $ inodeUsageBool inodeUsage
+
+fetchInodeBlocks :: Handle -> Superblock -> Inode -> IO LBS.ByteString
+fetchInodeBlocks handle sb inode = do
+  blockNums <- fetchDataBlockNumbers handle sb inode
+  LBS.concat <$> mapM readBlock blockNums
+  where readBlock num = do
+          hSeek handle AbsoluteSeek $ blockOffset sb (fromIntegral num)
+          LBS.hGet handle $ fromIntegral (sb ^. logBlockSize)
 
 fetchDataBlockNumbers :: Handle -> Superblock -> Inode -> IO [Integer]
 fetchDataBlockNumbers handle sb inode = do
