@@ -65,9 +65,9 @@ fetchUsageBitmaps sb bgd handle = do
 getBlockUsageBitmap :: Superblock -> Get BlockUsageBitmap
 getBlockUsageBitmap sb =
   BlockUsageBitmap (sb ^. blocksCount) <$>
-    replicateM (sb ^. blocksCount . to fromIntegral) getWord8
+    replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
 
 getInodeUsageBitmap :: Superblock -> Get InodeUsageBitmap
 getInodeUsageBitmap sb =
   InodeUsageBitmap (sb ^. inodesCount) <$>
-    replicateM (sb ^. blocksCount . to fromIntegral) getWord8
+    replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
