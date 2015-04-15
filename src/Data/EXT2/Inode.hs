@@ -63,14 +63,14 @@ data Inode =
   , linkCount :: Integer
   , blocks512 :: Integer
   , flags :: Integer
-  , osDependantValue :: SBS.ByteString
+  , osDependentValue :: SBS.ByteString
   , directBlocks :: [Integer]
   , indirectBlocks :: (Integer, Integer, Integer)
   , generation :: Integer
   , fileAcl :: Integer
   , dirAcl :: Integer
   , faddr :: Integer
-  , osDependantValue2 :: SBS.ByteString }
+  , osDependentValue2 :: SBS.ByteString }
   deriving (Eq, Show)
 
 lenInode :: Integral a => a
