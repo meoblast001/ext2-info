@@ -17,6 +17,7 @@ module Data.EXT2.BlockGroupDescriptor
 ) where
 
 import Control.Applicative
+import Control.Lens
 import Control.Monad
 import Data.Binary.Get
 import qualified Data.ByteString as SBS
@@ -41,7 +42,7 @@ lenBlockGroupDescriptor = 32
 
 fetchBGDT :: Superblock -> Handle -> IO [BlockGroupDescriptor]
 fetchBGDT superblock handle = do
-  let bSize = blockSize superblock
+  let bSize = superblock ^. logBlockSize
       bgdtLoc = if bSize == 1024 then bSize * 2 else bSize
       bgdtSize =
         fromIntegral (numBlockGroups superblock * lenBlockGroupDescriptor)

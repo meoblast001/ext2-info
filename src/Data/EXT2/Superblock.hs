@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.Superblock
@@ -18,12 +19,21 @@ module Data.EXT2.Superblock
 , fetchSuperblock
 , numBlockGroups
 , blockOffset
+
+-- * 'Superblock' Lenses
+, wTime, state, revLevel, rBlocksCount, mntCount, minorRevLevel, maxMntCount
+, magic, mTime, logFragSize, logBlockSize, lastCheck, inodesPerGroup
+, inodesCount, freeInodesCount, freeBlocksCount, fragsPerGroup, firstDataBlock
+, errors, defResuid, defResgid, creatorOs, checkInterval, blocksPerGroup
+, blocksCount
 ) where
 
 import Control.Applicative
+import Control.Lens
 import Data.Binary.Get
 import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.Info.Types (EXT2Error(..))
+import Data.EXT2.Internal.LensHacks
 import Data.EXT2.Util (createTime)
 import Data.UnixTime
 import System.IO
@@ -33,34 +43,60 @@ data ErrorHandlingMethod =
   MethodIgnore | MethodRemount | MethodPanic deriving (Eq, Show)
 data OperatingSystem = Linux | HURD | MASIX | FreeBSD | Other deriving (Eq, Show)
 
-data Superblock =
-  Superblock
-  { numInodes :: Integer
-  , numBlocks :: Integer
-  , numSuReservedBlocks :: Integer
-  , numUnallocBlocks :: Integer
-  , numUnallocINodes :: Integer
-  , superBlockNum :: Integer
-  , blockSize :: Integer
-  , fragmentSize :: Integer
-  , numBlocksPerGroup :: Integer
-  , numFragmentsPerGroup :: Integer
-  , numInodesPerGroup :: Integer
-  , lastMountTime :: UnixTime
-  , lastWrittenTime :: UnixTime
-  , numMountsSinceFsck :: Integer
-  , numMountsForReqFsck :: Integer
-  , signature :: Integer
-  , fsState :: FileSystemState
-  , errorHandlingMethod :: ErrorHandlingMethod
-  , minorVersion :: Integer
-  , lastFsckTime :: UnixTime
-  , intervalReqFsck :: UnixTime
-  , creatorOS :: OperatingSystem
-  , majorVersion :: Integer
-  , superUserID :: Integer
-  , superGroupID :: Integer }
-  deriving (Eq, Show)
+data Superblock = Superblock {
+    sbInodesCount       :: Integer
+    -- ^ Total number of inodes in the file system
+  , sbBlocksCount       :: Integer
+    -- ^ Total number of blocks in the file system
+  , sbRBlocksCount      :: Integer
+    -- ^ Number of blocks reserved for the superuser
+  , sbFreeBlocksCount   :: Integer
+    -- ^ Number of unallocated blocks
+  , sbFreeInodesCount   :: Integer
+    -- ^ Number of unallocated inodes
+  , sbFirstDataBlock    :: Integer
+    -- ^ Block number of the block containing the superblock
+  , sbLogBlockSize      :: Integer
+    -- ^ log2(block size) - 10
+  , sbLogFragSize       :: Integer
+    -- ^ log2(fragment size) - 10
+  , sbBlocksPerGroup    :: Integer
+    -- ^ Number of blocks in each group
+  , sbFragsPerGroup     :: Integer
+    -- ^ Number of gragments in each group
+  , sbInodesPerGroup    :: Integer
+    -- ^ Number of inodes in each group
+  , sbMTime             :: UnixTime
+    -- ^ Last mount time
+  , sbWTime             :: UnixTime
+    -- ^ Last write time
+  , sbMntCount          :: Integer
+    -- ^ Number of mounts since last consistency check
+  , sbMaxMntCount       :: Integer
+    -- ^ Number of allowed mounts before requiring a consistency check
+  , sbMagic             :: Integer
+    -- ^ ext2 signature: @0xef53@
+  , sbState             :: FileSystemState
+    -- ^ Filesystem state
+  , sbErrors            :: ErrorHandlingMethod
+    -- ^ What to do on an error condition
+  , sbMinorRevLevel     :: Integer
+    -- ^ Minor portion of version
+  , sbLastCheck         :: UnixTime
+    -- ^ Time of last consistency check
+  , sbCheckInterval     :: UnixTime
+    -- ^ Interval between forced consistency checks
+  , sbCreatorOs         :: OperatingSystem
+    -- ^ Operating system ID
+  , sbRevLevel          :: Integer
+    -- ^ Major portion of version
+  , sbDefResuid         :: Integer
+    -- ^ User ID that can use reserved blocks
+  , sbDefResgid         :: Integer
+    -- ^ Group ID that can use reserved blocks
+  } deriving (Eq, Show)
+
+makeLensesWith namespaceLensRules ''Superblock
 
 lenSuperblock :: Integral a => a
 lenSuperblock = 1024
@@ -88,7 +124,7 @@ getSuperblock =
 
 checkIdent :: Superblock -> Either EXT2Error Superblock
 checkIdent superblock
-  | signature superblock == 0xef53 = Right superblock
+  | superblock ^. magic == 0xef53 = Right superblock
   | otherwise = Left InvalidMagicNumber
 
 getFsState :: Integer -> FileSystemState
@@ -112,9 +148,9 @@ getOS _ = error "Unknown operating system."
 
 numBlockGroups :: Superblock -> Integer
 numBlockGroups superblock =
-  let numBlocksF = fromIntegral $ numBlocks superblock
-      numBlocksPerGroupF = fromIntegral $ numBlocksPerGroup superblock
+  let numBlocksF = superblock ^. blocksCount . to fromIntegral
+      numBlocksPerGroupF = superblock ^. blocksPerGroup . to fromIntegral
   in ceiling (numBlocksF / numBlocksPerGroupF :: Double)
 
 blockOffset :: Superblock -> Integer -> Integer
-blockOffset sb block = 1024 + (block - 1) * blockSize sb
+blockOffset sb block = 1024 + (block - 1) * sb ^. logBlockSize

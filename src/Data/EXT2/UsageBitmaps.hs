@@ -16,6 +16,7 @@ module Data.EXT2.UsageBitmaps
 , fetchUsageBitmaps
 ) where
 
+import Control.Lens
 import Control.Monad
 import Data.Binary.Get
 import Data.Bits.Bitwise (toListBE)
@@ -30,7 +31,7 @@ data BlockUsageBitmap = BlockUsageBitmap Integer [Word8] deriving (Eq)
 data InodeUsageBitmap = InodeUsageBitmap Integer [Word8] deriving (Eq)
 
 lenUsageBitmaps :: Integral a => Superblock -> a
-lenUsageBitmaps = fromIntegral . blockSize
+lenUsageBitmaps sb = sb ^. logBlockSize . to fromIntegral
 
 instance Show BlockUsageBitmap where
   show bm@(BlockUsageBitmap len _) =
@@ -63,10 +64,10 @@ fetchUsageBitmaps sb bgd handle = do
 
 getBlockUsageBitmap :: Superblock -> Get BlockUsageBitmap
 getBlockUsageBitmap sb =
-  BlockUsageBitmap (numBlocks sb) <$>
-    replicateM (fromIntegral $ blockSize sb) getWord8
+  BlockUsageBitmap (sb ^. blocksCount) <$>
+    replicateM (sb ^. blocksCount . to fromIntegral) getWord8
 
 getInodeUsageBitmap :: Superblock -> Get InodeUsageBitmap
 getInodeUsageBitmap sb =
-  InodeUsageBitmap (numInodes sb) <$>
-    replicateM (fromIntegral $ blockSize sb) getWord8
+  InodeUsageBitmap (sb ^. inodesCount) <$>
+    replicateM (sb ^. blocksCount . to fromIntegral) getWord8

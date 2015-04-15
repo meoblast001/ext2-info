@@ -20,6 +20,7 @@ module Data.EXT2.Inode
 ) where
 
 import Control.Applicative
+import Control.Lens
 import Control.Monad
 import Data.Binary.Get
 import Data.Bits
@@ -79,7 +80,7 @@ fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
   --let inodeTableSize = fromIntegral (numInodesPerGroup sb * lenInode)
   hSeek handle AbsoluteSeek $ blockOffset sb $ inodeTblStartAddr bgd
-  replicateM (fromIntegral (numInodesPerGroup sb))
+  replicateM (sb ^. inodesPerGroup . to fromIntegral)
              (runGet getInode <$> LBS.hGet handle lenInode)
 
 getInode :: Get Inode
@@ -109,7 +110,8 @@ fetchDataBlockNumbers handle sb inode = do
 
 get32IntBlockTillZero :: Superblock -> Get [Integer]
 get32IntBlockTillZero sb = do
-  let num32Integers = floor (fromIntegral (blockSize sb) / 4 :: Double)
+  let num32Integers =
+        floor ((sb ^. logBlockSize . to fromIntegral) / 4 :: Double)
       getInt = toInteger <$> getWord32le
   fst <$> break (== 0) <$> replicateM num32Integers getInt
 
@@ -118,14 +120,14 @@ fetchIndirectBlock1 _ _ 0 = return []
 fetchIndirectBlock1 handle sb blockNum = do
   hSeek handle AbsoluteSeek $ blockOffset sb blockNum
   runGet (get32IntBlockTillZero sb) <$>
-         LBS.hGet handle (fromInteger $ blockSize sb)
+         LBS.hGet handle (sb ^. logBlockSize . to fromIntegral)
 
 fetchIndirectBlock2 :: Handle -> Superblock -> Integer -> IO [Integer]
 fetchIndirectBlock2 _ _ 0 = return []
 fetchIndirectBlock2 handle sb blockNum = do
   hSeek handle AbsoluteSeek $ blockOffset sb blockNum
   indirectBlocks' <- runGet (get32IntBlockTillZero sb) <$>
-                    LBS.hGet handle (fromInteger $ blockSize sb)
+                    LBS.hGet handle (sb ^. logBlockSize . to fromIntegral)
   concat <$> mapM (fetchIndirectBlock1 handle sb) indirectBlocks'
 
 fetchIndirectBlock3 :: Handle -> Superblock -> Integer -> IO [Integer]
@@ -133,5 +135,5 @@ fetchIndirectBlock3 _ _ 0 = return []
 fetchIndirectBlock3 handle sb blockNum = do
   hSeek handle AbsoluteSeek $ blockOffset sb blockNum
   indirectBlocks' <- runGet (get32IntBlockTillZero sb) <$>
-                    LBS.hGet handle (fromInteger $ blockSize sb)
+                    LBS.hGet handle (sb ^. logBlockSize . to fromIntegral)
   concat <$> mapM (fetchIndirectBlock2 handle sb) indirectBlocks'
