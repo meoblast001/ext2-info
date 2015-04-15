@@ -84,7 +84,7 @@ getSuperblock =
              <*> (getOS <$> getInt) <*> getInt <*> getShort <*> getShort
   where getInt = toInteger <$> getWord32le
         getShort = toInteger <$> getWord16le
-        getTime = createTime <$> (fromIntegral <$> getWord32le)
+        getTime = createTime <$> (fromIntegral <$> getWord32le :: Get Integer)
 
 checkIdent :: Superblock -> Either EXT2Error Superblock
 checkIdent superblock
@@ -114,7 +114,7 @@ numBlockGroups :: Superblock -> Integer
 numBlockGroups superblock =
   let numBlocksF = fromIntegral $ numBlocks superblock
       numBlocksPerGroupF = fromIntegral $ numBlocksPerGroup superblock
-  in ceiling (numBlocksF / numBlocksPerGroupF)
+  in ceiling (numBlocksF / numBlocksPerGroupF :: Double)
 
 blockOffset :: Superblock -> Integer -> Integer
 blockOffset sb block = 1024 + (block - 1) * blockSize sb
