@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.Inode
@@ -18,6 +19,11 @@ module Data.EXT2.Inode
 , usedInodes
 , fetchInodeBlocks
 , fetchDataBlockNumbers
+
+-- * 'Inode' Lenses
+, mode, size, userId, accessTime, creationTime, modifiedTime, deletedTime
+, groupId, linkCount, blocks512, flags, osDependentValue, generation, fileAcl
+, dirAcl, faddr, osDependentValue2
 ) where
 
 import Control.Applicative
@@ -28,6 +34,7 @@ import Data.Bits
 import qualified Data.ByteString as SBS
 import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.BlockGroupDescriptor
+import Data.EXT2.Internal.LensHacks
 import Data.EXT2.Superblock
 import Data.EXT2.UsageBitmaps
 import Data.EXT2.Util (createTime)
@@ -53,26 +60,28 @@ intToFileFormatMode input
 
 data Inode =
   Inode
-  { mode :: [InodeMode]
-  , userId :: Integer
-  , size :: Integer
-  , accessTime :: UnixTime
-  , creationTime :: UnixTime
-  , modifiedTime :: UnixTime
-  , deletedTime :: UnixTime
-  , groupId :: Integer
-  , linkCount :: Integer
-  , blocks512 :: Integer
-  , flags :: Integer
-  , osDependentValue :: SBS.ByteString
-  , directBlocks :: [Integer]
-  , indirectBlocks :: (Integer, Integer, Integer)
-  , generation :: Integer
-  , fileAcl :: Integer
-  , dirAcl :: Integer
-  , faddr :: Integer
-  , osDependentValue2 :: SBS.ByteString }
+  { inoMode :: [InodeMode]
+  , inoUserId :: Integer
+  , inoSize :: Integer
+  , inoAccessTime :: UnixTime
+  , inoCreationTime :: UnixTime
+  , inoModifiedTime :: UnixTime
+  , inoDeletedTime :: UnixTime
+  , inoGroupId :: Integer
+  , inoLinkCount :: Integer
+  , inoBlocks512 :: Integer
+  , inoFlags :: Integer
+  , inoOsDependentValue :: SBS.ByteString
+  , inoDirectBlocks :: [Integer]
+  , inoIndirectBlocks :: (Integer, Integer, Integer)
+  , inoGeneration :: Integer
+  , inoFileAcl :: Integer
+  , inoDirAcl :: Integer
+  , inoFaddr :: Integer
+  , inoOsDependentValue2 :: SBS.ByteString }
   deriving (Eq, Show)
+
+makeLensesWith namespaceLensRules ''Inode
 
 lenInode :: Integral a => a
 lenInode = 128
@@ -109,8 +118,8 @@ fetchInodeBlocks handle sb inode = do
 
 fetchDataBlockNumbers :: Handle -> Superblock -> Inode -> IO [Integer]
 fetchDataBlockNumbers handle sb inode = do
-  let usedDirect = takeWhile (not . (== 0)) (directBlocks inode)
-      (indir1Num, indir2Num, indir3Num) = indirectBlocks inode
+  let usedDirect = takeWhile (not . (== 0)) (inode ^. directBlocks)
+      (indir1Num, indir2Num, indir3Num) = inode ^. indirectBlocks
   indir1 <- fetchIndirectBlock1 handle sb indir1Num
   indir2 <- fetchIndirectBlock2 handle sb indir2Num
   indir3 <- fetchIndirectBlock3 handle sb indir3Num
