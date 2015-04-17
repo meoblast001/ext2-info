@@ -34,7 +34,7 @@ import Data.Binary.Get
 import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.Info.Types (EXT2Error(..))
 import Data.EXT2.Internal.LensHacks
-import Data.EXT2.Util (createTime)
+import Data.EXT2.Internal.Util (createTime)
 import Data.UnixTime
 import System.IO
 

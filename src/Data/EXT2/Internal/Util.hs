@@ -10,7 +10,7 @@
 -- Portability : ghc
 --
 -- Utility functions used in other modules.
-module Data.EXT2.Util ( createTime ) where
+module Data.EXT2.Internal.Util ( createTime ) where
 
 import Data.UnixTime
 import Foreign.C.Types

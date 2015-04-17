@@ -37,7 +37,7 @@ import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Internal.LensHacks
 import Data.EXT2.Superblock
 import Data.EXT2.UsageBitmaps
-import Data.EXT2.Util (createTime)
+import Data.EXT2.Internal.Util (createTime)
 import Data.Maybe
 import Data.UnixTime
 import System.IO
