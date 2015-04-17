@@ -16,6 +16,7 @@ module Data.EXT2.Inode
 ( InodeMode(..)
 , Inode(..)
 , fetchInodeTable
+, fetchInode
 , usedInodes
 , fetchInodeBlocks
 , fetchDataBlockNumbers
@@ -90,6 +91,21 @@ fetchInodeTable sb bgd handle = do
   hSeek handle AbsoluteSeek $ blockOffset sb $ inodeTblStartAddr bgd
   replicateM (sb ^. inodesPerGroup . to fromIntegral)
              (runGet getInode <$> LBS.hGet handle lenInode)
+
+fetchInode :: Superblock -> [BlockGroupDescriptor] -> Handle -> Integer ->
+              IO (Maybe Inode)
+fetchInode sb bgdTable handle inodeNum =
+  let groupIndex = (inodeNum - 1) `quot` sb ^. inodesPerGroup
+      localInodeNum = (inodeNum - 1) - (groupIndex * sb ^. inodesPerGroup)
+  in case bgdTable `maybeIndex` fromIntegral groupIndex of
+    Just bgd -> do
+      let inodeLoc = (blockOffset sb $ inodeTblStartAddr bgd) +
+                     (lenInode * localInodeNum)
+      hSeek handle AbsoluteSeek inodeLoc
+      Just <$> runGet getInode <$> LBS.hGet handle lenInode
+    Nothing -> return Nothing
+  where list `maybeIndex` index =
+          if index < length list then Just (list !! index) else Nothing
 
 getInode :: Get Inode
 getInode =

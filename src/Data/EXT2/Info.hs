@@ -41,20 +41,13 @@ printBGDInfo :: Handle -> Superblock -> BlockGroupDescriptor -> Integer -> IO ()
 printBGDInfo handle superblock bgd num = do
   putStrLn ("Block Group Descriptor " ++ show num)
   print bgd
-  (_, inodeUsage) <- fetchUsageBitmaps superblock bgd handle
-  inodeTable <- usedInodes inodeUsage <$> fetchInodeTable superblock bgd handle
-  putStrLn " - Inode Table:"
-  mapM_ (\inode -> putStrLn ("   - " ++ show inode)) inodeTable
 
 printRootDir :: Handle -> Superblock -> [BlockGroupDescriptor] -> IO ()
 printRootDir handle superblock bgdTable = do
   putStrLn "Root Directory:"
-  inodeTable <- concat <$>
-                mapM (\bgd -> fetchInodeTable superblock bgd handle) bgdTable
-  case inodeTable `maybeIndex` 1 of
+  inodeMaybe <- fetchInode superblock bgdTable handle 2
+  case inodeMaybe of
     (Just inode) -> do
       directory <- fetchDirectory handle superblock inode
       mapM_ (\entry -> putStrLn (" - " ++ show (entry ^. name))) directory
     Nothing -> putStrLn " - [Doesn't exist.]"
-  where list `maybeIndex` index =
-          if index < length list then Just (list !! index) else Nothing
