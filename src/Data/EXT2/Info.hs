@@ -13,8 +13,10 @@
 -- inodes.
 module Data.EXT2.Info ( ext2Info ) where
 
+import Control.Lens
 import Control.Monad
 import Data.EXT2.BlockGroupDescriptor
+import Data.EXT2.Directory
 --import Data.EXT2.Info.Types (EXT2Error(..))
 import Data.EXT2.Inode
 import Data.EXT2.Superblock
@@ -33,6 +35,7 @@ printSuperblockInfo handle superblock = do
   print superblock
   bgdTable <- fetchBGDT superblock handle
   zipWithM_ (printBGDInfo handle superblock) bgdTable [0..]
+  printRootDir handle superblock bgdTable
 
 printBGDInfo :: Handle -> Superblock -> BlockGroupDescriptor -> Integer -> IO ()
 printBGDInfo handle superblock bgd num = do
@@ -42,3 +45,16 @@ printBGDInfo handle superblock bgd num = do
   inodeTable <- usedInodes inodeUsage <$> fetchInodeTable superblock bgd handle
   putStrLn " - Inode Table:"
   mapM_ (\inode -> putStrLn ("   - " ++ show inode)) inodeTable
+
+printRootDir :: Handle -> Superblock -> [BlockGroupDescriptor] -> IO ()
+printRootDir handle superblock bgdTable = do
+  putStrLn "Root Directory:"
+  inodeTable <- concat <$>
+                mapM (\bgd -> fetchInodeTable superblock bgd handle) bgdTable
+  case inodeTable `maybeIndex` 1 of
+    (Just inode) -> do
+      directory <- fetchDirectory handle superblock inode
+      mapM_ (\entry -> putStrLn (" - " ++ show (entry ^. name))) directory
+    Nothing -> putStrLn " - [Doesn't exist.]"
+  where list `maybeIndex` index =
+          if index < length list then Just (list !! index) else Nothing

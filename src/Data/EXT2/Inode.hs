@@ -42,7 +42,6 @@ import Data.Maybe
 import Data.UnixTime
 import System.IO
 
- -- | File Format.
 data InodeMode =
   SocketInode | SymLinkInode | RegFileInode | BlockDevInode |
   DirectoryInode | CharDevInode | FifoInode deriving (Eq, Show)
@@ -96,7 +95,7 @@ getInode :: Get Inode
 getInode =
   Inode <$> maybeToList <$> (intToFileFormatMode <$> getShort)
         <*> getShort <*> getInt <*> getTime <*> getTime <*> getTime
-        <*> getTime <*> getShort <*> getShort <*> getShort <*> getInt
+        <*> getTime <*> getShort <*> getShort <*> getInt <*> getInt
         <*> getByteString 4 <*> replicateM 12 getInt
         <*> liftA3 (,,) getInt getInt getInt <*> getInt <*> getInt
         <*> getInt <*> getInt <*> getByteString 12
