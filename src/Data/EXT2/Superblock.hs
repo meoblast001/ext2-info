@@ -43,56 +43,57 @@ data ErrorHandlingMethod =
   MethodIgnore | MethodRemount | MethodPanic deriving (Eq, Show)
 data OperatingSystem = Linux | HURD | MASIX | FreeBSD | Other deriving (Eq, Show)
 
-data Superblock = Superblock {
-    sbInodesCount       :: Integer
+data Superblock =
+  Superblock {
+    sbInodesCount :: Integer
     -- ^ Total number of inodes in the file system
-  , sbBlocksCount       :: Integer
+  , sbBlocksCount :: Integer
     -- ^ Total number of blocks in the file system
-  , sbRBlocksCount      :: Integer
+  , sbRBlocksCount :: Integer
     -- ^ Number of blocks reserved for the superuser
-  , sbFreeBlocksCount   :: Integer
+  , sbFreeBlocksCount :: Integer
     -- ^ Number of unallocated blocks
-  , sbFreeInodesCount   :: Integer
+  , sbFreeInodesCount :: Integer
     -- ^ Number of unallocated inodes
-  , sbFirstDataBlock    :: Integer
+  , sbFirstDataBlock :: Integer
     -- ^ Block number of the block containing the superblock
-  , sbLogBlockSize      :: Integer
+  , sbLogBlockSize :: Integer
     -- ^ log2(block size) - 10
-  , sbLogFragSize       :: Integer
+  , sbLogFragSize :: Integer
     -- ^ log2(fragment size) - 10
-  , sbBlocksPerGroup    :: Integer
+  , sbBlocksPerGroup :: Integer
     -- ^ Number of blocks in each group
-  , sbFragsPerGroup     :: Integer
+  , sbFragsPerGroup :: Integer
     -- ^ Number of gragments in each group
-  , sbInodesPerGroup    :: Integer
+  , sbInodesPerGroup :: Integer
     -- ^ Number of inodes in each group
-  , sbMTime             :: UnixTime
+  , sbMTime :: UnixTime
     -- ^ Last mount time
-  , sbWTime             :: UnixTime
+  , sbWTime :: UnixTime
     -- ^ Last write time
-  , sbMntCount          :: Integer
+  , sbMntCount :: Integer
     -- ^ Number of mounts since last consistency check
-  , sbMaxMntCount       :: Integer
+  , sbMaxMntCount :: Integer
     -- ^ Number of allowed mounts before requiring a consistency check
-  , sbMagic             :: Integer
+  , sbMagic :: Integer
     -- ^ ext2 signature: @0xef53@
-  , sbState             :: FileSystemState
+  , sbState :: FileSystemState
     -- ^ Filesystem state
-  , sbErrors            :: ErrorHandlingMethod
+  , sbErrors :: ErrorHandlingMethod
     -- ^ What to do on an error condition
-  , sbMinorRevLevel     :: Integer
+  , sbMinorRevLevel :: Integer
     -- ^ Minor portion of version
-  , sbLastCheck         :: UnixTime
+  , sbLastCheck :: UnixTime
     -- ^ Time of last consistency check
-  , sbCheckInterval     :: UnixTime
+  , sbCheckInterval :: UnixTime
     -- ^ Interval between forced consistency checks
-  , sbCreatorOs         :: OperatingSystem
+  , sbCreatorOs :: OperatingSystem
     -- ^ Operating system ID
-  , sbRevLevel          :: Integer
+  , sbRevLevel :: Integer
     -- ^ Major portion of version
-  , sbDefResuid         :: Integer
+  , sbDefResuid :: Integer
     -- ^ User ID that can use reserved blocks
-  , sbDefResgid         :: Integer
+  , sbDefResgid :: Integer
     -- ^ Group ID that can use reserved blocks
   } deriving (Eq, Show)
 
