@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.BlockGroupDescriptor
@@ -14,6 +15,10 @@
 module Data.EXT2.BlockGroupDescriptor
 ( BlockGroupDescriptor(..)
 , fetchBGDT
+
+-- * 'BlockGroupDescriptor' Lenses
+, reserve, pad, numDirectories, numUnallocInodes, numUnallocBlocks
+, inodeTblStartAddr, inodeUsageAddr, blockUsageAddr
 ) where
 
 import Control.Applicative
@@ -22,20 +27,23 @@ import Control.Monad
 import Data.Binary.Get
 import qualified Data.ByteString as SBS
 import qualified Data.ByteString.Lazy as LBS
+import Data.EXT2.Internal.LensHacks
 import Data.EXT2.Superblock
 import System.IO
 
 data BlockGroupDescriptor =
   BlockGroupDescriptor
-  { blockUsageAddr :: Integer
-  , inodeUsageAddr :: Integer
-  , inodeTblStartAddr :: Integer
-  , numUnallocBlocks :: Integer
-  , numUnallocInodes :: Integer
-  , numDirectories :: Integer
+  { bgdBlockUsageAddr :: Integer
+  , bgdInodeUsageAddr :: Integer
+  , bgdInodeTblStartAddr :: Integer
+  , bgdNumUnallocBlocks :: Integer
+  , bgdNumUnallocInodes :: Integer
+  , bgdNumDirectories :: Integer
   , bgdPad :: SBS.ByteString
   , bgdReserve :: SBS.ByteString }
   deriving (Eq, Show)
+
+makeLensesWith namespaceLensRules ''BlockGroupDescriptor
 
 lenBlockGroupDescriptor :: Integral a => a
 lenBlockGroupDescriptor = 32
