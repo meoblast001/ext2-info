@@ -29,7 +29,7 @@ module Data.EXT2.Inode
 
 import Control.Applicative
 import Control.Lens
-import Control.Monad
+import Control.Monad (replicateM)
 import Data.Binary.Get
 import Data.Bits
 import qualified Data.ByteString as SBS
@@ -41,6 +41,7 @@ import Data.EXT2.UsageBitmaps
 import Data.EXT2.Internal.Util (createTime)
 import Data.Maybe
 import Data.UnixTime
+import qualified Data.Vector as V
 import System.IO
 
 data InodeMode =
@@ -88,24 +89,22 @@ lenInode = 128
 
 fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
-  hSeek handle AbsoluteSeek $ blockOffset sb $ inodeTblStartAddr bgd
+  hSeek handle AbsoluteSeek $ blockOffset sb $ bgd ^. inodeTblStartAddr
   replicateM (sb ^. inodesPerGroup . to fromIntegral)
-             (runGet getInode <$> LBS.hGet handle lenInode)
+    (runGet getInode <$> LBS.hGet handle lenInode)
 
-fetchInode :: Superblock -> [BlockGroupDescriptor] -> Handle -> Integer ->
+fetchInode :: Superblock -> V.Vector BlockGroupDescriptor -> Handle -> Integer ->
               IO (Maybe Inode)
 fetchInode sb bgdTable handle inodeNum =
   let groupIndex = (inodeNum - 1) `quot` sb ^. inodesPerGroup
       localInodeNum = (inodeNum - 1) - (groupIndex * sb ^. inodesPerGroup)
-  in case bgdTable `maybeIndex` fromIntegral groupIndex of
+  in case bgdTable V.!? fromIntegral groupIndex of
     Just bgd -> do
-      let inodeLoc = (blockOffset sb $ inodeTblStartAddr bgd) +
+      let inodeLoc = (blockOffset sb $ bgd ^. inodeTblStartAddr) +
                      (lenInode * localInodeNum)
       hSeek handle AbsoluteSeek inodeLoc
       Just <$> runGet getInode <$> LBS.hGet handle lenInode
     Nothing -> return Nothing
-  where list `maybeIndex` idx =
-          if idx < length list then Just (list !! idx) else Nothing
 
 getInode :: Get Inode
 getInode =

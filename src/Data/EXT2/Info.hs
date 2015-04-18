@@ -14,12 +14,11 @@
 module Data.EXT2.Info ( ext2Info ) where
 
 import Control.Lens
-import Control.Monad
 import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Directory
---import Data.EXT2.Info.Types (EXT2Error(..))
 import Data.EXT2.Inode
 import Data.EXT2.Superblock
+import qualified Data.Vector as V
 import System.IO
 
 ext2Info :: Handle -> IO ()
@@ -32,7 +31,7 @@ printSuperblockInfo handle superblock = do
   putStrLn "Superblock is:"
   print superblock
   bgdTable <- fetchBGDT superblock handle
-  zipWithM_ (printBGDInfo handle superblock) bgdTable [0..]
+  V.zipWithM_ (printBGDInfo handle superblock) bgdTable (V.enumFromN 0 (V.length bgdTable))
   printRootDir handle superblock bgdTable
 
 printBGDInfo :: Handle -> Superblock -> BlockGroupDescriptor -> Integer -> IO ()
@@ -40,7 +39,7 @@ printBGDInfo _ _ bgd num = do
   putStrLn ("Block Group Descriptor " ++ show num)
   print bgd
 
-printRootDir :: Handle -> Superblock -> [BlockGroupDescriptor] -> IO ()
+printRootDir :: Handle -> Superblock -> V.Vector BlockGroupDescriptor -> IO ()
 printRootDir handle superblock bgdTable = do
   putStrLn "Root Directory:"
   inodeMaybe <- fetchInode superblock bgdTable handle 2

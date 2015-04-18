@@ -23,12 +23,12 @@ module Data.EXT2.BlockGroupDescriptor
 
 import Control.Applicative
 import Control.Lens
-import Control.Monad
 import Data.Binary.Get
 import qualified Data.ByteString as SBS
 import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.Internal.LensHacks
 import Data.EXT2.Superblock
+import qualified Data.Vector as V
 import System.IO
 
 data BlockGroupDescriptor =
@@ -48,7 +48,7 @@ makeLensesWith namespaceLensRules ''BlockGroupDescriptor
 lenBlockGroupDescriptor :: Integral a => a
 lenBlockGroupDescriptor = 32
 
-fetchBGDT :: Superblock -> Handle -> IO [BlockGroupDescriptor]
+fetchBGDT :: Superblock -> Handle -> IO (V.Vector BlockGroupDescriptor)
 fetchBGDT superblock handle = do
   let bSize = superblock ^. logBlockSize
       bgdtLoc = if bSize == 1024 then bSize * 2 else bSize
@@ -57,9 +57,9 @@ fetchBGDT superblock handle = do
   hSeek handle AbsoluteSeek bgdtLoc
   runGet (getBGDT $ numBlockGroups superblock) <$> LBS.hGet handle bgdtSize
 
-getBGDT :: Integer -> Get [BlockGroupDescriptor]
+getBGDT :: Integer -> Get (V.Vector BlockGroupDescriptor)
 getBGDT blockGroups =
-  replicateM (fromInteger blockGroups) getBlockGroupDescriptor
+  V.replicateM (fromInteger blockGroups) getBlockGroupDescriptor
 
 getBlockGroupDescriptor :: Get BlockGroupDescriptor
 getBlockGroupDescriptor = do
