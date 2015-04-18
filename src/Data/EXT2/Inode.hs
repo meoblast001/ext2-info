@@ -104,8 +104,8 @@ fetchInode sb bgdTable handle inodeNum =
       hSeek handle AbsoluteSeek inodeLoc
       Just <$> runGet getInode <$> LBS.hGet handle lenInode
     Nothing -> return Nothing
-  where list `maybeIndex` index =
-          if index < length list then Just (list !! index) else Nothing
+  where list `maybeIndex` idx =
+          if idx < length list then Just (list !! idx) else Nothing
 
 getInode :: Get Inode
 getInode =

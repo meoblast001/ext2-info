@@ -20,8 +20,6 @@ import Data.EXT2.Directory
 --import Data.EXT2.Info.Types (EXT2Error(..))
 import Data.EXT2.Inode
 import Data.EXT2.Superblock
-import Data.EXT2.UsageBitmaps
-import Data.Functor
 import System.IO
 
 ext2Info :: Handle -> IO ()
@@ -38,7 +36,7 @@ printSuperblockInfo handle superblock = do
   printRootDir handle superblock bgdTable
 
 printBGDInfo :: Handle -> Superblock -> BlockGroupDescriptor -> Integer -> IO ()
-printBGDInfo handle superblock bgd num = do
+printBGDInfo _ _ bgd num = do
   putStrLn ("Block Group Descriptor " ++ show num)
   print bgd
 
