@@ -26,6 +26,7 @@ import Control.Applicative
 import Control.Lens
 import Control.Monad
 import Data.Foldable
+import Data.Monoid
 
 type ByteAmount = Integer
 
@@ -73,6 +74,12 @@ instance MonadPlus IntegrityStatus where
   mzero = empty
   Consistent `mplus` ys = ys
   xs `mplus` _ = xs
+
+instance Monoid a => Monoid (IntegrityStatus a) where
+  mempty = empty
+  Consistent `mappend` m = m
+  m `mappend` Consistent = m
+  Inconsistent x `mappend` Inconsistent y = Inconsistent (x `mappend` y)
 
 maybeIso :: Iso' (IntegrityStatus a) (Maybe a)
 maybeIso = iso toMaybe fromMaybe
