@@ -64,6 +64,16 @@ instance Monad IntegrityStatus where
   Consistent >>= _ = Consistent
   Inconsistent x >>= f = f x
 
+instance Alternative IntegrityStatus where
+  empty = Consistent
+  Consistent <|> p = p
+  incx@(Inconsistent _) <|> _ = incx
+
+instance MonadPlus IntegrityStatus where
+  mzero = empty
+  Consistent `mplus` ys = ys
+  xs `mplus` _ = xs
+
 maybeIso :: Iso' (IntegrityStatus a) (Maybe a)
 maybeIso = iso toMaybe fromMaybe
   where
