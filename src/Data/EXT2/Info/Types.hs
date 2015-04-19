@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.Info.Types
@@ -14,7 +17,15 @@ module Data.EXT2.Info.Types
 ( ByteAmount
 , EXT2Info(..)
 , EXT2Error(..)
+, IntegrityStatus(..)
+
+, maybeIso
 ) where
+
+import Control.Applicative
+import Control.Lens
+import Control.Monad
+import Data.Foldable
 
 type ByteAmount = Integer
 
@@ -36,3 +47,27 @@ data EXT2Error = InvalidMagicNumber | InconsistentSuperblocks |
                  ReachableUnusedInode | DirectoryInodeUnused |
                  UsedDataBlockWithoutInode | UnusedDataBlockWithInode |
                  InvalidFileCount | InvalidDirectoryCount deriving (Eq, Show)
+
+-- | 'IntegrityStatus' is isomorphic to Maybe, but typically 'Nothing' is used
+-- to show a missing value or an error condition, rather than a success (and
+-- we consider being consistent to be a success value).
+data IntegrityStatus a = Consistent
+                       | Inconsistent a
+                       deriving (Eq, Foldable, Functor, Ord, Show, Traversable)
+
+instance Applicative IntegrityStatus where
+  pure = Inconsistent
+  (<*>) = ap
+
+instance Monad IntegrityStatus where
+  return = pure
+  Consistent >>= _ = Consistent
+  Inconsistent x >>= f = f x
+
+maybeIso :: Iso' (IntegrityStatus a) (Maybe a)
+maybeIso = iso toMaybe fromMaybe
+  where
+    fromMaybe (Just x) = Inconsistent x
+    fromMaybe Nothing = Consistent
+    toMaybe (Inconsistent x) = Just x
+    toMaybe Consistent = Nothing
