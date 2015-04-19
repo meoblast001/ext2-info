@@ -19,6 +19,7 @@ module Data.EXT2.Superblock
 , fetchSuperblock
 , numBlockGroups
 , blockOffset
+, checkIdent
 
 -- * 'Superblock' Lenses
 , wTime, state, revLevel, rBlocksCount, mntCount, minorRevLevel, maxMntCount
