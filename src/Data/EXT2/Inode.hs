@@ -100,7 +100,7 @@ fetchInode sb bgdTable handle inodeNum =
       localInodeNum = (inodeNum - 1) - (groupIndex * sb ^. inodesPerGroup)
   in case bgdTable V.!? fromIntegral groupIndex of
     Just bgd -> do
-      let inodeLoc = (blockOffset sb $ bgd ^. inodeTblStartAddr) +
+      let inodeLoc = blockOffset sb (bgd ^. inodeTblStartAddr) +
                      (lenInode * localInodeNum)
       hSeek handle AbsoluteSeek inodeLoc
       Just <$> runGet getInode <$> LBS.hGet handle lenInode

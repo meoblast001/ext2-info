@@ -43,15 +43,15 @@ makeLensesWith namespaceLensRules ''DirectoryEntry
 type Directory = [DirectoryEntry]
 
 fetchDirectory :: Handle -> Superblock -> Inode -> IO Directory
-fetchDirectory handle sb inode = do
+fetchDirectory handle sb inode =
   getDirectory <$> fetchInodeBlocks handle sb inode
 
 getDirectory :: LBS.ByteString -> Directory
 getDirectory bytestring =
   let entry = runGet getDirectoryEntry bytestring
       advanceLen = entry ^. recordLen . to fromIntegral
-  in if (entry ^. inodeRef) /= 0 && (LBS.length bytestring) - advanceLen > 0
-     then entry:(getDirectory (LBS.drop advanceLen bytestring))
+  in if (entry ^. inodeRef) /= 0 && LBS.length bytestring - advanceLen > 0
+     then entry : getDirectory (LBS.drop advanceLen bytestring)
      else [entry]
 
 getDirectoryEntry :: Get DirectoryEntry
