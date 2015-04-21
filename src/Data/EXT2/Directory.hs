@@ -1,4 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.Directory
@@ -58,6 +62,8 @@ data FsItem =
   , fsitemInode :: Inode }
   deriving (Eq, Show)
 
+makeLensesWith namespaceLensRules ''FsItem
+
 fetchDirectory :: Handle -> Superblock -> Inode -> IO Directory
 fetchDirectory handle sb inode =
   getDirectory <$> fetchInodeBlocks handle sb inode
@@ -79,7 +85,7 @@ getDirectoryEntry = do
   name' <- LBS8.unpack <$> getLazyByteString (fromIntegral nameLen)
   return $ DirectoryEntry inodeRef' recordLen' fileType' name'
 
-buildFsTree :: Handle -> Superblock -> (V.Vector BlockGroupDescriptor) ->
+buildFsTree :: Handle -> Superblock -> V.Vector BlockGroupDescriptor ->
                IO (Maybe FsItem)
 buildFsTree handle sb bgdTable = do
   rootInode <- fetchInode sb bgdTable handle 2
@@ -87,7 +93,7 @@ buildFsTree handle sb bgdTable = do
     (Just root) -> buildFsTreeRecur handle sb bgdTable "" root
     Nothing -> return Nothing
 
-buildFsTreeRecur :: Handle -> Superblock -> (V.Vector BlockGroupDescriptor) ->
+buildFsTreeRecur :: Handle -> Superblock -> V.Vector BlockGroupDescriptor ->
                     String -> Inode -> IO (Maybe FsItem)
 buildFsTreeRecur handle sb bgdTable itemName inode
   | DirectoryInode `elem` inode ^. mode = do
@@ -100,8 +106,8 @@ buildFsTreeRecur handle sb bgdTable itemName inode
     -- Nothing, childItems will be Nothing. childItems will also be Nothing if
     -- any recursive call returns Nothing. Else it will contain a list of child
     -- FsItems.
-    childItems <- join <$> (fmap sequence) <$> T.sequence (zipWithM
-      (\cName cInode -> buildFsTreeRecur handle sb bgdTable cName cInode)
+    childItems <- join <$> fmap sequence <$> T.sequence (zipWithM
+      (buildFsTreeRecur handle sb bgdTable)
       childNames <$> childInodes)
     return (FsDirectory itemName inode <$> childItems)
   | otherwise = return (Just $ FsFile itemName inode)

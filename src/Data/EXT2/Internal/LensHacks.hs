@@ -10,28 +10,30 @@
 module Data.EXT2.Internal.LensHacks where
 
 import Data.Char
-import Data.List
+import Data.List as List
 import Data.Maybe
 import Control.Lens
 import Control.Lens.Internal.FieldTH
 import Language.Haskell.TH
 
 namespaceLensRules :: LensRules
-namespaceLensRules = lensRules { _fieldToDef = abbreviatedNamer }
+namespaceLensRules = defaultFieldRules { _fieldToDef = abbreviatedNamer }
 
 -- | This is taken straight out of 'Control.Lens.TH' but modified to give
 -- a 'TopName' back instead of a 'MethodName'. This means we can
 -- 'makeLensesWith'out classes using abbreviated fields.
+
 abbreviatedNamer :: Name -> [Name] -> Name -> [DefName]
 abbreviatedNamer _ fields field = maybeToList $ do
   fieldPart <- stripMaxLc (nameBase field)
   method    <- computeMethod fieldPart
-  return (TopName (mkName method))
+  let cls = "Has" ++ fieldPart
+  return (MethodName (mkName cls) (mkName method))
 
   where
   stripMaxLc f = do x <- stripPrefix optUnderscore f
                     case break isUpper x of
-                      (p,s) | null p || null s -> Nothing
+                      (p,s) | List.null p || List.null s -> Nothing
                             | otherwise                  -> Just s
   optUnderscore  = ['_' | any (isPrefixOf "_" . nameBase) fields ]
 
