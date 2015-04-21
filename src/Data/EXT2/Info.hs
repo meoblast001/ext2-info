@@ -13,10 +13,8 @@
 -- inodes.
 module Data.EXT2.Info ( ext2Info ) where
 
-import Control.Lens
 import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Directory
-import Data.EXT2.Inode
 import Data.EXT2.Superblock
 import qualified Data.Vector as V
 import System.IO
@@ -41,10 +39,7 @@ printBGDInfo _ _ bgd num = do
 
 printRootDir :: Handle -> Superblock -> V.Vector BlockGroupDescriptor -> IO ()
 printRootDir handle superblock bgdTable = do
-  putStrLn "Root Directory:"
-  inodeMaybe <- fetchInode superblock bgdTable handle 2
-  case inodeMaybe of
-    (Just inode) -> do
-      directory <- fetchDirectory handle superblock inode
-      mapM_ (\entry -> putStrLn (" - " ++ show (entry ^. name))) directory
-    Nothing -> putStrLn " - [Doesn't exist.]"
+  tree <- buildFsTree handle superblock bgdTable
+  case tree of
+    Just fsTree -> putStrLn (show fsTree)
+    Nothing -> error "Could not walk filesystem."
