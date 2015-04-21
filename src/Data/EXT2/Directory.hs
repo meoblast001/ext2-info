@@ -14,20 +14,26 @@
 -- the filesystem.
 module Data.EXT2.Directory
 ( DirectoryEntry(..)
+, FsItem(..)
 , fetchDirectory
+, buildFsTree
 
 -- * Directory lenses.
 , inodeRef, recordLen, fileType, name
 ) where
 
 import Control.Lens
+import Control.Monad
 import Data.Binary.Get
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Lazy.Char8 as LBS8
+import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Inode
 import Data.EXT2.Internal.LensHacks
 import Data.EXT2.Superblock
 import Data.Functor
+import qualified Data.Traversable as T
+import qualified Data.Vector as V
 import System.IO
 
 data DirectoryEntry =
@@ -41,6 +47,16 @@ data DirectoryEntry =
 makeLensesWith namespaceLensRules ''DirectoryEntry
 
 type Directory = [DirectoryEntry]
+
+data FsItem =
+  FsDirectory
+  { fsitemName :: String
+  , fsitemInode :: Inode
+  , fsitemChildren :: [FsItem] } |
+  FsFile
+  { fsitemName :: String
+  , fsitemInode :: Inode }
+  deriving (Eq, Show)
 
 fetchDirectory :: Handle -> Superblock -> Inode -> IO Directory
 fetchDirectory handle sb inode =
@@ -62,3 +78,30 @@ getDirectoryEntry = do
   fileType' <- toInteger <$> getWord8
   name' <- LBS8.unpack <$> getLazyByteString (fromIntegral nameLen)
   return $ DirectoryEntry inodeRef' recordLen' fileType' name'
+
+buildFsTree :: Handle -> Superblock -> (V.Vector BlockGroupDescriptor) ->
+               IO (Maybe FsItem)
+buildFsTree handle sb bgdTable = do
+  rootInode <- fetchInode sb bgdTable handle 2
+  case rootInode of
+    (Just root) -> buildFsTreeRecur handle sb bgdTable "" root
+    Nothing -> return Nothing
+
+buildFsTreeRecur :: Handle -> Superblock -> (V.Vector BlockGroupDescriptor) ->
+                    String -> Inode -> IO (Maybe FsItem)
+buildFsTreeRecur handle sb bgdTable itemName inode
+  | DirectoryInode `elem` inode ^. mode = do
+    directory <- fetchDirectory handle sb inode
+    let childInodeRefs = map dirInodeRef directory
+        childNames = map dirName directory
+    childInodes <- sequence <$> mapM (fetchInode sb bgdTable handle)
+                                     childInodeRefs
+    -- This composition of functions may be a bit complex. If childInodes is
+    -- Nothing, childItems will be Nothing. childItems will also be Nothing if
+    -- any recursive call returns Nothing. Else it will contain a list of child
+    -- FsItems.
+    childItems <- join <$> (fmap sequence) <$> T.sequence (zipWithM
+      (\cName cInode -> buildFsTreeRecur handle sb bgdTable cName cInode)
+      childNames <$> childInodes)
+    return (FsDirectory itemName inode <$> childItems)
+  | otherwise = return (Just $ FsFile itemName inode)
