@@ -11,6 +11,7 @@
 module Main where
 
 import Data.EXT2.Info
+import Data.Functor
 import System.Environment
 import System.IO
 
@@ -18,5 +19,6 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [fileName] -> withFile fileName ReadMode ext2Info
+    [fileName] -> withFile fileName ReadMode
+                           (\handle -> (show <$> ext2Info handle) >>= putStrLn)
     _ -> error "Please specify a file name."

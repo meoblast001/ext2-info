@@ -1,6 +1,10 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.Info.Types
@@ -20,11 +24,16 @@ module Data.EXT2.Info.Types
 , IntegrityStatus(..)
 
 , maybeIso
+
+-- * EXT2Info lenses.
+, totalSize, usedFileSpaceSize, unusedFileSpaceSize, spaceUsed, numInodes
+, numFiles, numDirectories, numBlockGroups, blockSize, stateClean
 ) where
 
 import Control.Applicative
 import Control.Lens
 import Control.Monad
+import Data.EXT2.Internal.LensHacks
 import Data.Foldable
 import Data.Monoid
 
@@ -32,18 +41,21 @@ type ByteAmount = Integer
 
 data EXT2Info =
   EXT2Info
-  { totalSize :: ByteAmount
-  , usedFileSpaceSize :: ByteAmount
-  , unusedFileSpaceSize :: ByteAmount
-  , spaceUsed :: ByteAmount
-  , numInodes :: Integer
-  , numFiles :: Integer
-  , numDirectories :: Integer
-  , numBlockGroups :: Integer
-  , blockSize :: ByteAmount }
+  { ext2TotalSize :: ByteAmount
+  , ext2UsedFileSpaceSize :: ByteAmount
+  , ext2UnusedFileSpaceSize :: ByteAmount
+  , ext2SpaceUsed :: ByteAmount
+  , ext2NumInodes :: Integer
+  , ext2NumFiles :: Integer
+  , ext2NumDirectories :: Integer
+  , ext2NumBlockGroups :: Integer
+  , ext2BlockSize :: ByteAmount
+  , ext2StateClean :: Bool }
   deriving (Eq, Show)
 
-data EXT2Error = InvalidMagicNumber | InconsistentSuperblocks |
+makeLensesWith namespaceLensRules ''EXT2Info
+
+data EXT2Error = GeneralError | InvalidMagicNumber | InconsistentSuperblocks |
                  InconsistentBGDT | UnreachableUsedInode |
                  ReachableUnusedInode | DirectoryInodeUnused |
                  UsedDataBlockWithoutInode | UnusedDataBlockWithInode |

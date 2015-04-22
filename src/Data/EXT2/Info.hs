@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.Info
@@ -13,16 +14,52 @@
 -- inodes.
 module Data.EXT2.Info ( ext2Info ) where
 
+import Control.Lens
 import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Directory
-import Data.EXT2.Superblock
+import Data.EXT2.Info.Types
+import Data.EXT2.Superblock as Superblock
+import Data.Functor
 import qualified Data.Vector as V
 import System.IO
 
-ext2Info :: Handle -> IO ()
+ext2Info :: Handle -> IO (Either EXT2Error EXT2Info)
 ext2Info handle = do
-  superblock <- fetchSuperblock handle
-  either print (printSuperblockInfo handle) superblock
+  superblockOrErr <- fetchSuperblock handle
+  case superblockOrErr of
+    Left err -> return $ Left err
+    Right superblock -> do
+      -- Begin debug code.
+      printSuperblockInfo handle superblock
+      -- End debug code.
+      bgdTable <- fetchBGDT superblock handle
+      fsTreeMay <- buildFsTree handle superblock bgdTable
+      case fsTreeMay of
+        Just fsTree ->
+          Right <$> generateInfo handle superblock bgdTable fsTree
+        Nothing -> return $ Left GeneralError
+
+generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->
+                IO EXT2Info
+generateInfo handle sb bgdTable fsRoot = do
+  totalSize <- hFileSize handle
+  return $ EXT2Info {
+      ext2TotalSize = totalSize,
+      ext2UsedFileSpaceSize = 0, -- To be completed.
+      ext2UnusedFileSpaceSize = 0, -- To be completed.
+      ext2SpaceUsed = 0, -- To be completed.
+      ext2NumInodes = 0, -- To be completed.
+      ext2NumFiles = countFiles fsRoot,
+      ext2NumDirectories = V.foldl (+) 0 (V.map bgdNumDirectories bgdTable),
+      ext2NumBlockGroups = Superblock.numBlockGroups sb,
+      ext2BlockSize = sb ^. logBlockSize,
+      ext2StateClean = sb ^. state == StateClean
+    }
+
+countFiles :: FsItem -> Integer
+countFiles dir@(FsDirectory {}) =
+  foldl (+) 0 $ map countFiles (dir ^. childItems)
+countFiles (FsFile {}) = 1
 
 printSuperblockInfo :: Handle -> Superblock -> IO ()
 printSuperblockInfo handle superblock = do
@@ -37,7 +74,7 @@ printBGDInfo _ _ bgd num = do
   putStrLn ("Block Group Descriptor " ++ show num)
   print bgd
 
-printRootDir :: Handle -> Superblock -> V.Vector BlockGroupDescriptor -> IO ()
+printRootDir :: Handle -> Superblock -> BlockGroupDescriptorTable -> IO ()
 printRootDir handle superblock bgdTable = do
   tree <- buildFsTree handle superblock bgdTable
   case tree of

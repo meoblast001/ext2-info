@@ -16,6 +16,7 @@
 -- descriptor tables.
 module Data.EXT2.BlockGroupDescriptor
 ( BlockGroupDescriptor(..)
+, BlockGroupDescriptorTable(..)
 , fetchBGDT
 
 -- * 'BlockGroupDescriptor' Lenses
@@ -47,10 +48,12 @@ data BlockGroupDescriptor =
 
 makeLensesWith namespaceLensRules ''BlockGroupDescriptor
 
+type BlockGroupDescriptorTable = V.Vector BlockGroupDescriptor
+
 lenBlockGroupDescriptor :: Integral a => a
 lenBlockGroupDescriptor = 32
 
-fetchBGDT :: Superblock -> Handle -> IO (V.Vector BlockGroupDescriptor)
+fetchBGDT :: Superblock -> Handle -> IO BlockGroupDescriptorTable
 fetchBGDT superblock handle = do
   let bSize = superblock ^. logBlockSize
       bgdtLoc = if bSize == 1024 then bSize * 2 else bSize
@@ -59,7 +62,7 @@ fetchBGDT superblock handle = do
   hSeek handle AbsoluteSeek bgdtLoc
   runGet (getBGDT $ numBlockGroups superblock) <$> LBS.hGet handle bgdtSize
 
-getBGDT :: Integer -> Get (V.Vector BlockGroupDescriptor)
+getBGDT :: Integer -> Get BlockGroupDescriptorTable
 getBGDT blockGroups =
   V.replicateM (fromInteger blockGroups) getBlockGroupDescriptor
 
