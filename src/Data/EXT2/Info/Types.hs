@@ -80,7 +80,7 @@ instance Monad IntegrityStatus where
 instance Alternative IntegrityStatus where
   empty = Consistent
   Consistent <|> p = p
-  incx@(Inconsistent _) <|> _ = incx
+  incx <|> _ = incx
 
 instance MonadPlus IntegrityStatus where
   mzero = empty
@@ -100,3 +100,4 @@ maybeIso = iso toMaybe fromMaybe
     fromMaybe Nothing = Consistent
     toMaybe (Inconsistent x) = Just x
     toMaybe Consistent = Nothing
+{-# INLINE maybeIso #-}

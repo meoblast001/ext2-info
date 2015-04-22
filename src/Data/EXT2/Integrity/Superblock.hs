@@ -23,6 +23,7 @@ import Data.EXT2.Superblock
 superblockMagicCheck :: Superblock -> IntegrityStatus EXT2Error
 superblockMagicCheck (checkIdent -> Left e) = Inconsistent e
 superblockMagicCheck _ = Consistent
+{-# INLINE superblockMagicCheck #-}
 
 -- | Ensure consistency of two 'Superblock's.
 --
@@ -30,3 +31,4 @@ superblockMagicCheck _ = Consistent
 superblockConsistency :: Superblock -> Superblock -> IntegrityStatus EXT2Error
 superblockConsistency x ((== x) -> True) = Consistent
 superblockConsistency _ _ = Inconsistent InconsistentSuperblocks
+{-# INLINE superblockConsistency #-}

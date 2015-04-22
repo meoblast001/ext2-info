@@ -61,6 +61,7 @@ intToFileFormatMode input
   | (input .&. 0xf000) == 0x2000 = Just CharDevInode
   | (input .&. 0xf000) == 0x1000 = Just FifoInode
   | otherwise = Nothing
+{-# INLINE intToFileFormatMode #-}
 
 data Inode =
   Inode
@@ -89,6 +90,7 @@ makeLensesWith namespaceLensRules ''Inode
 
 lenInode :: Integral a => a
 lenInode = 128
+{-# INLINE lenInode #-}
 
 fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
@@ -124,6 +126,7 @@ getInode =
 usedInodes :: InodeUsageBitmap -> [Inode] -> [Inode]
 usedInodes inodeUsage allInodes =
   map fst $ filter snd $ zip allInodes $ inodeUsageBool inodeUsage
+{-# INLINE usedInodes #-}
 
 fetchInodeBlocks :: Handle -> Superblock -> Inode -> IO LBS.ByteString
 fetchInodeBlocks handle sb inode = do
@@ -143,11 +146,11 @@ fetchDataBlockNumbers handle sb inode = do
   return (usedDirect ++ indir1 ++ indir2 ++ indir3)
 
 get32IntBlockTillZero :: Superblock -> Get [Integer]
-get32IntBlockTillZero sb = do
+get32IntBlockTillZero sb =
   let num32Integers =
         floor ((sb ^. logBlockSize . to fromIntegral) / 4 :: Double)
       getInt = toInteger <$> getWord32le
-  fst <$> break (== 0) <$> replicateM num32Integers getInt
+  in fst <$> break (== 0) <$> replicateM num32Integers getInt
 
 fetchIndirectBlock1 :: Handle -> Superblock -> Integer -> IO [Integer]
 fetchIndirectBlock1 _ _ 0 = return []

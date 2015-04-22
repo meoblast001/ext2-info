@@ -32,6 +32,7 @@ data InodeUsageBitmap = InodeUsageBitmap Integer [Word8] deriving (Eq)
 
 lenUsageBitmaps :: Integral a => Superblock -> a
 lenUsageBitmaps sb = sb ^. logBlockSize . to fromIntegral
+{-# INLINE lenUsageBitmaps #-}
 
 instance Show BlockUsageBitmap where
   show bm@(BlockUsageBitmap len _) =
@@ -46,10 +47,12 @@ instance Show InodeUsageBitmap where
 blockUsageBool :: BlockUsageBitmap -> [Bool]
 blockUsageBool (BlockUsageBitmap len words') =
   take (fromIntegral len) $ concatMap toListBE words'
+{-# INLINE blockUsageBool #-}
 
 inodeUsageBool :: InodeUsageBitmap -> [Bool]
 inodeUsageBool (InodeUsageBitmap len words') =
   take (fromIntegral len) $ concatMap toListBE words'
+{-# INLINE inodeUsageBool #-}
 
 fetchUsageBitmaps :: Superblock -> BlockGroupDescriptor -> Handle ->
                      IO (BlockUsageBitmap, InodeUsageBitmap)
@@ -66,8 +69,10 @@ getBlockUsageBitmap :: Superblock -> Get BlockUsageBitmap
 getBlockUsageBitmap sb =
   BlockUsageBitmap (sb ^. blocksCount) <$>
     replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
+{-# INLINE getBlockUsageBitmap #-}
 
 getInodeUsageBitmap :: Superblock -> Get InodeUsageBitmap
 getInodeUsageBitmap sb =
   InodeUsageBitmap (sb ^. inodesCount) <$>
     replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
+{-# INLINE getInodeUsageBitmap #-}

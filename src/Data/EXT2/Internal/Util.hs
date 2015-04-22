@@ -17,3 +17,4 @@ import Foreign.C.Types
 
 createTime :: Integral a => a -> UnixTime
 createTime seconds = UnixTime (CTime $ fromIntegral seconds) 0
+{-# INLINE createTime #-}

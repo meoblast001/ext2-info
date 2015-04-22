@@ -104,11 +104,13 @@ makeLensesWith namespaceLensRules ''Superblock
 
 lenSuperblock :: Integral a => a
 lenSuperblock = 1024
+{-# INLINE lenSuperblock #-}
 
 fetchSuperblock :: Handle -> IO (Either EXT2Error Superblock)
 fetchSuperblock handle = do
   hSeek handle AbsoluteSeek 1024
   checkIdent <$> runGet getSuperblock <$> LBS.hGet handle lenSuperblock
+{-# INLINE fetchSuperblock #-}
 
 getSuperblock :: Get Superblock
 getSuperblock =
@@ -130,17 +132,20 @@ checkIdent :: Superblock -> Either EXT2Error Superblock
 checkIdent superblock
   | superblock ^. magic == 0xef53 = Right superblock
   | otherwise = Left InvalidMagicNumber
+{-# INLINE checkIdent #-}
 
 getFsState :: Integer -> FileSystemState
 getFsState 1 = StateClean
 getFsState 2 = StateErrors
 getFsState _ = error "Unknown filesystem state."
+{-# INLINE getFsState #-}
 
 getErrorHandlingMethod :: Integer -> ErrorHandlingMethod
 getErrorHandlingMethod 1 = MethodIgnore
 getErrorHandlingMethod 2 = MethodRemount
 getErrorHandlingMethod 3 = MethodPanic
 getErrorHandlingMethod _ = error "Unknown error handling method."
+{-# INLINE getErrorHandlingMethod #-}
 
 getOS :: Integer -> OperatingSystem
 getOS 0 = Linux
@@ -149,12 +154,15 @@ getOS 2 = MASIX
 getOS 3 = FreeBSD
 getOS 4 = Other
 getOS _ = error "Unknown operating system."
+{-# INLINE getOS #-}
 
 numBlockGroups :: Superblock -> Integer
 numBlockGroups superblock =
   let numBlocksF = superblock ^. blocksCount . to fromIntegral
       numBlocksPerGroupF = superblock ^. blocksPerGroup . to fromIntegral
   in ceiling (numBlocksF / numBlocksPerGroupF :: Double)
+{-# INLINE numBlockGroups #-}
 
 blockOffset :: Superblock -> Integer -> Integer
 blockOffset sb block = 1024 + (block - 1) * sb ^. logBlockSize
+{-# INLINE blockOffset #-}

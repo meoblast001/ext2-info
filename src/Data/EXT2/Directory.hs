@@ -78,6 +78,7 @@ instance Show FsItem where
 fetchDirectory :: Handle -> Superblock -> Inode -> IO Directory
 fetchDirectory handle sb inode' =
   getDirectory <$> fetchInodeBlocks handle sb inode'
+{-# INLINE fetchDirectory #-}
 
 getDirectory :: LBS.ByteString -> Directory
 getDirectory bytestring =

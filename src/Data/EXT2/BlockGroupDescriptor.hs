@@ -52,6 +52,7 @@ type BlockGroupDescriptorTable = V.Vector BlockGroupDescriptor
 
 lenBlockGroupDescriptor :: Integral a => a
 lenBlockGroupDescriptor = 32
+{-# INLINE lenBlockGroupDescriptor #-}
 
 fetchBGDT :: Superblock -> Handle -> IO BlockGroupDescriptorTable
 fetchBGDT superblock handle = do
@@ -65,6 +66,7 @@ fetchBGDT superblock handle = do
 getBGDT :: Integer -> Get BlockGroupDescriptorTable
 getBGDT blockGroups =
   V.replicateM (fromInteger blockGroups) getBlockGroupDescriptor
+{-# INLINE getBGDT #-}
 
 getBlockGroupDescriptor :: Get BlockGroupDescriptor
 getBlockGroupDescriptor = do

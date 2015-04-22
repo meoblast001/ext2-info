@@ -18,6 +18,7 @@ import Language.Haskell.TH
 
 namespaceLensRules :: LensRules
 namespaceLensRules = defaultFieldRules { _fieldToDef = abbreviatedNamer }
+{-# INLINE namespaceLensRules #-}
 
 -- | This is taken straight out of 'Control.Lens.TH' but modified to give
 -- a 'TopName' back instead of a 'MethodName'. This means we can
