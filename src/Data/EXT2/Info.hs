@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.Info
@@ -42,9 +41,9 @@ ext2Info handle = do
 generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->
                 IO EXT2Info
 generateInfo handle sb bgdTable fsRoot = do
-  totalSize <- hFileSize handle
-  return $ EXT2Info {
-      ext2TotalSize = totalSize,
+  totalSize' <- hFileSize handle
+  return EXT2Info {
+      ext2TotalSize = totalSize',
       ext2UsedFileSpaceSize = 0, -- To be completed.
       ext2UnusedFileSpaceSize = 0, -- To be completed.
       ext2SpaceUsed = 0, -- To be completed.
@@ -57,8 +56,7 @@ generateInfo handle sb bgdTable fsRoot = do
     }
 
 countFiles :: FsItem -> Integer
-countFiles dir@(FsDirectory {}) =
-  foldl (+) 0 $ map countFiles (dir ^. childItems)
+countFiles dir@(FsDirectory {}) = sum $ map countFiles (dir ^. childItems)
 countFiles (FsFile {}) = 1
 
 printSuperblockInfo :: Handle -> Superblock -> IO ()
@@ -78,5 +76,5 @@ printRootDir :: Handle -> Superblock -> BlockGroupDescriptorTable -> IO ()
 printRootDir handle superblock bgdTable = do
   tree <- buildFsTree handle superblock bgdTable
   case tree of
-    Just fsTree -> putStrLn (show fsTree)
+    Just fsTree -> print fsTree
     Nothing -> error "Could not walk filesystem."

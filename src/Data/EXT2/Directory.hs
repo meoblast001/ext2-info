@@ -67,13 +67,13 @@ makeLensesWith namespaceLensRules ''FsItem
 
 recurShowFsItem :: Int -> FsItem -> String
 recurShowFsItem indent (FsDirectory name' _ children') =
-  (concat $ replicate indent "  ") ++ " - " ++ name' ++ " (DIR)\n" ++
+  concat (replicate indent "  ") ++ " - " ++ name' ++ " (DIR)\n" ++
   concatMap (recurShowFsItem (indent + 1)) children'
 recurShowFsItem indent (FsFile name' _) =
-  (concat $ replicate indent "  ") ++ " - " ++ name' ++ " (FILE)\n"
+  concat (replicate indent "  ") ++ " - " ++ name' ++ " (FILE)\n"
 
 instance Show FsItem where
-  show item = recurShowFsItem 0 item
+  show = recurShowFsItem 0
 
 fetchDirectory :: Handle -> Superblock -> Inode -> IO Directory
 fetchDirectory handle sb inode' =
@@ -109,7 +109,7 @@ buildFsTreeRecur :: Handle -> Superblock -> BlockGroupDescriptorTable ->
                     String -> Inode -> IO (Maybe FsItem)
 buildFsTreeRecur handle sb bgdTable itemName inode'
   | DirectoryInode `elem` inode' ^. mode = do
-    directory <- filter (\entry -> not (entry ^. name `elem` [".", ".."])) <$>
+    directory <- filter (\entry -> (entry ^. name) `notElem` [".", ".."]) <$>
                  fetchDirectory handle sb inode'
     let childInodeRefs = map dirInodeRef directory
         childNames = map dirName directory
