@@ -26,5 +26,5 @@ blockGroupDescriptorConsistency
   -> BlockGroupDescriptor
   -> IntegrityStatus EXT2Error
 blockGroupDescriptorConsistency x ((== x) -> True) = Consistent
-blockGroupDescriptorConsistency _ _ = Inconsistent InconsistentSuperblocks
+blockGroupDescriptorConsistency _ _ = Inconsistent InconsistentBGDT
 {-# INLINE blockGroupDescriptorConsistency #-}
