@@ -41,11 +41,11 @@ ext2Info handle = do
 generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->
                 IO EXT2Info
 generateInfo handle sb bgdTable fsRoot = do
-  totalSize' <- hFileSize handle
   return EXT2Info {
-      ext2TotalSize = totalSize',
-      ext2UsedFileSpaceSize = 0, -- To be completed.
-      ext2UnusedFileSpaceSize = 0, -- To be completed.
+      ext2TotalSize = sb ^. to fileSystemSize,
+      ext2UsedFileSpaceSize = sb ^. to fileSystemSize -
+                              sb ^. to freeFileSystemSize,
+      ext2UnusedFileSpaceSize = sb ^. to freeFileSystemSize,
       ext2SpaceUsed = 0, -- To be completed.
       ext2NumInodes = 0, -- To be completed.
       ext2NumFiles = countFiles fsRoot,
