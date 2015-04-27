@@ -16,7 +16,7 @@
 -- descriptor tables.
 module Data.EXT2.BlockGroupDescriptor
 ( BlockGroupDescriptor(..)
-, BlockGroupDescriptorTable(..)
+, BlockGroupDescriptorTable
 , fetchBGDT
 
 -- * 'BlockGroupDescriptor' Lenses
