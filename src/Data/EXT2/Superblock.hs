@@ -110,7 +110,6 @@ fetchSuperblock :: Handle -> IO (Either EXT2Error Superblock)
 fetchSuperblock handle = do
   hSeek handle AbsoluteSeek 1024
   checkIdent <$> runGet getSuperblock <$> LBS.hGet handle lenSuperblock
-{-# INLINE fetchSuperblock #-}
 
 getSuperblock :: Get Superblock
 getSuperblock =
