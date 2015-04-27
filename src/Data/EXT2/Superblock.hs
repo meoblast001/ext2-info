@@ -22,6 +22,8 @@ module Data.EXT2.Superblock
 , numBlockGroups
 , blockOffset
 , checkIdent
+, fileSystemSize
+, freeFileSystemSize
 
 -- * 'Superblock' Lenses
 , wTime, state, revLevel, rBlocksCount, mntCount, minorRevLevel, maxMntCount
@@ -165,3 +167,13 @@ numBlockGroups superblock =
 blockOffset :: Superblock -> Integer -> Integer
 blockOffset sb block = 1024 + (block - 1) * sb ^. logBlockSize
 {-# INLINE blockOffset #-}
+
+fileSystemSize :: Superblock -> Integer
+fileSystemSize sb =
+  sb ^. to numBlockGroups * sb ^. blocksPerGroup * sb ^. logBlockSize
+{-# INLINE fileSystemSize #-}
+
+freeFileSystemSize :: Superblock -> Integer
+freeFileSystemSize sb =
+  sb ^. freeBlocksCount * sb ^. logBlockSize
+{-# INLINE freeFileSystemSize #-}
