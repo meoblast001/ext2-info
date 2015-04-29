@@ -25,8 +25,8 @@ module Data.EXT2.Info.Types
 , maybeIso
 
 -- * EXT2Info lenses.
-, totalSize, usedFileSpaceSize, unusedFileSpaceSize, spaceUsed, numInodes
-, numFiles, numDirectories, numBlockGroups, blockSize, stateClean
+, totalSize, usedFileSpaceSize, unusedFileSpaceSize, numInodes, numFiles
+, numDirectories, numBlockGroups, blockSize, stateClean
 ) where
 
 import Control.Applicative
@@ -43,7 +43,6 @@ data EXT2Info =
   { ext2TotalSize :: ByteAmount
   , ext2UsedFileSpaceSize :: ByteAmount
   , ext2UnusedFileSpaceSize :: ByteAmount
-  , ext2SpaceUsed :: ByteAmount
   , ext2NumInodes :: Integer
   , ext2NumFiles :: Integer
   , ext2NumDirectories :: Integer

@@ -46,7 +46,6 @@ generateInfo handle sb bgdTable fsRoot = do
       ext2UsedFileSpaceSize = sb ^. to fileSystemSize -
                               sb ^. to freeFileSystemSize,
       ext2UnusedFileSpaceSize = sb ^. to freeFileSystemSize,
-      ext2SpaceUsed = 0, -- To be completed.
       ext2NumInodes = sb ^. inodesCount,
       ext2NumFiles = countFiles fsRoot,
       ext2NumDirectories = V.foldl (+) 0 (V.map bgdNumDirectories bgdTable),
