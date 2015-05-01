@@ -17,6 +17,7 @@
 -- inodes.
 module Data.EXT2.Inode
 ( InodeMode(..)
+, InodeNumber
 , Inode(..)
 , fetchInodeTable
 , fetchInode
@@ -25,9 +26,9 @@ module Data.EXT2.Inode
 , fetchDataBlockNumbers
 
 -- * 'Inode' Lenses
-, mode, size, userId, accessTime, creationTime, modifiedTime, deletedTime
-, groupId, linkCount, blocks512, flags, osDependentValue, generation, fileAcl
-, dirAcl, faddr, osDependentValue2
+, inodeNumber, mode, size, userId, accessTime, creationTime, modifiedTime
+, deletedTime, groupId, linkCount, blocks512, flags, osDependentValue
+, generation, fileAcl, dirAcl, faddr, osDependentValue2
 ) where
 
 import Control.Applicative
@@ -63,9 +64,12 @@ intToFileFormatMode input
   | otherwise = Nothing
 {-# INLINE intToFileFormatMode #-}
 
+type InodeNumber = Integer
+
 data Inode =
   Inode
-  { inoMode :: [InodeMode]
+  { inoInodeNumber :: InodeNumber
+  , inoMode :: [InodeMode]
   , inoUserId :: Integer
   , inoSize :: Integer
   , inoAccessTime :: UnixTime
@@ -94,12 +98,13 @@ lenInode = 128
 
 fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
+  let startInodeNumber = (bgd ^. groupNumber - 1) * sb ^. inodesPerGroup
   hSeek handle AbsoluteSeek $ blockOffset sb $ bgd ^. inodeTblStartAddr
-  replicateM (sb ^. inodesPerGroup . to fromIntegral)
-    (runGet getInode <$> LBS.hGet handle lenInode)
+  mapM (\num -> runGet (getInode (startInodeNumber + num)) <$>
+                LBS.hGet handle lenInode) [1..sb ^. inodesPerGroup]
 
-fetchInode :: Superblock -> V.Vector BlockGroupDescriptor -> Handle -> Integer ->
-              IO (Maybe Inode)
+fetchInode :: Superblock -> V.Vector BlockGroupDescriptor -> Handle ->
+              InodeNumber -> IO (Maybe Inode)
 fetchInode sb bgdTable handle inodeNum =
   let groupIndex = (inodeNum - 1) `quot` sb ^. inodesPerGroup
       localInodeNum = (inodeNum - 1) - (groupIndex * sb ^. inodesPerGroup)
@@ -108,12 +113,12 @@ fetchInode sb bgdTable handle inodeNum =
       let inodeLoc = blockOffset sb (bgd ^. inodeTblStartAddr) +
                      (lenInode * localInodeNum)
       hSeek handle AbsoluteSeek inodeLoc
-      Just <$> runGet getInode <$> LBS.hGet handle lenInode
+      Just <$> runGet (getInode inodeNum) <$> LBS.hGet handle lenInode
     Nothing -> return Nothing
 
-getInode :: Get Inode
-getInode =
-  Inode <$> maybeToList <$> (intToFileFormatMode <$> getShort)
+getInode :: InodeNumber -> Get Inode
+getInode inodeNum =
+  Inode inodeNum <$> maybeToList <$> (intToFileFormatMode <$> getShort)
         <*> getShort <*> getInt <*> getTime <*> getTime <*> getTime
         <*> getTime <*> getShort <*> getShort <*> getInt <*> getInt
         <*> getByteString 4 <*> replicateM 12 getInt

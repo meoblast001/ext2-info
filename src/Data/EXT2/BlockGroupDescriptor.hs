@@ -1,6 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.BlockGroupDescriptor
@@ -15,13 +16,14 @@
 -- This module contains functions and types for dealing with ext2\'s block group
 -- descriptor tables.
 module Data.EXT2.BlockGroupDescriptor
-( BlockGroupDescriptor(..)
+( DescriptorNumber
+, BlockGroupDescriptor(..)
 , BlockGroupDescriptorTable
 , fetchBGDT
 
 -- * 'BlockGroupDescriptor' Lenses
 , reserve, pad, numDirectories, numUnallocInodes, numUnallocBlocks
-, inodeTblStartAddr, inodeUsageAddr, blockUsageAddr
+, inodeTblStartAddr, inodeUsageAddr, blockUsageAddr, groupNumber
 ) where
 
 import Control.Applicative
@@ -34,9 +36,12 @@ import Data.EXT2.Superblock
 import qualified Data.Vector as V
 import System.IO
 
+type DescriptorNumber = Integer
+
 data BlockGroupDescriptor =
   BlockGroupDescriptor
-  { bgdBlockUsageAddr :: Integer
+  { bgdGroupNumber :: DescriptorNumber
+  , bgdBlockUsageAddr :: Integer
   , bgdInodeUsageAddr :: Integer
   , bgdInodeTblStartAddr :: Integer
   , bgdNumUnallocBlocks :: Integer
@@ -65,13 +70,13 @@ fetchBGDT superblock handle = do
 
 getBGDT :: Integer -> Get BlockGroupDescriptorTable
 getBGDT blockGroups =
-  V.replicateM (fromInteger blockGroups) getBlockGroupDescriptor
+  V.mapM getBlockGroupDescriptor (V.enumFromTo 1 blockGroups)
 {-# INLINE getBGDT #-}
 
-getBlockGroupDescriptor :: Get BlockGroupDescriptor
-getBlockGroupDescriptor = do
+getBlockGroupDescriptor :: DescriptorNumber -> Get BlockGroupDescriptor
+getBlockGroupDescriptor descNum = do
   let getInt = toInteger <$> getWord32le
       getShort = toInteger <$> getWord16le
-  BlockGroupDescriptor <$> getInt <*> getInt <*> getInt <*> getShort
+  BlockGroupDescriptor descNum <$> getInt <*> getInt <*> getInt <*> getShort
                        <*> getShort <*> getShort <*> getByteString 2
                        <*> getByteString 12
