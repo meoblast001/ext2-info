@@ -84,9 +84,10 @@ getDirectory :: LBS.ByteString -> Directory
 getDirectory bytestring =
   let entry = runGet getDirectoryEntry bytestring
       advanceLen = entry ^. recordLen . to fromIntegral
-  in if (entry ^. inodeRef) /= 0 && LBS.length bytestring - advanceLen > 0
+      used = entry ^. inodeRef /= 0
+  in if used && LBS.length bytestring - advanceLen > 0
      then entry : getDirectory (LBS.drop advanceLen bytestring)
-     else [entry]
+     else if used then [entry] else []
 
 getDirectoryEntry :: Get DirectoryEntry
 getDirectoryEntry = do
