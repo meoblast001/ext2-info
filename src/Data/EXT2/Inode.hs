@@ -130,7 +130,7 @@ getInode inodeNum =
 
 usedInodes :: InodeUsageBitmap -> [Inode] -> [Inode]
 usedInodes inodeUsage allInodes =
-  map fst $ filter snd $ zip allInodes $ inodeUsageBool inodeUsage
+  map fst $ filter snd $ zip allInodes $ V.toList (inodeUsageBool inodeUsage)
 {-# INLINE usedInodes #-}
 
 fetchInodeBlocks :: Handle -> Superblock -> Inode -> IO LBS.ByteString
