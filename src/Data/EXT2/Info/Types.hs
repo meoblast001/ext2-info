@@ -40,9 +40,21 @@ data EXT2Info =
   , ext2NumBlockGroups :: Integer
   , ext2BlockSize :: ByteAmount
   , ext2StateClean :: Bool }
-  deriving (Eq, Show)
+  deriving (Eq)
 
 makeLensesWith namespaceLensRules ''EXT2Info
+
+instance Show EXT2Info where
+  show info =
+    "Total size:              " ++ show (info ^. totalSize) ++ "\n" ++
+    "Used file space size:    " ++ show (info ^. usedFileSpaceSize) ++ "\n" ++
+    "Unused file space size:  " ++ show (info ^. unusedFileSpaceSize) ++ "\n" ++
+    "Number of inodes:        " ++ show (info ^. numInodes) ++ "\n" ++
+    "Number of files:         " ++ show (info ^. numFiles) ++ "\n" ++
+    "Number of directories:   " ++ show (info ^. numDirectories) ++ "\n" ++
+    "Number of block groups:  " ++ show (info ^. numBlockGroups) ++ "\n" ++
+    "Block size:              " ++ show (info ^. blockSize) ++ "\n" ++
+    "Clean:                   " ++ show (info ^. stateClean) ++ "\n"
 
 data EXT2Error = GeneralError | InvalidMagicNumber | InconsistentSuperblocks |
                  InconsistentBGDT | UnreachableUsedInode |

@@ -11,7 +11,10 @@
 --
 -- This module contains functions and types for dealing with ext2\'s concept of
 -- inodes.
-module Data.EXT2.Info ( ext2Info ) where
+module Data.EXT2.Info
+( ext2Info
+, ext2Debug
+) where
 
 import Control.Lens
 import Data.EXT2.BlockGroupDescriptor
@@ -28,9 +31,6 @@ ext2Info handle = do
   case superblockOrErr of
     Left err -> return $ Left err
     Right superblock -> do
-      -- Begin debug code.
-      printSuperblockInfo handle superblock
-      -- End debug code.
       bgdTable <- fetchBGDT superblock handle
       fsTreeMay <- buildFsTree handle superblock bgdTable
       case fsTreeMay of
@@ -57,6 +57,13 @@ generateInfo _ sb bgdTable fsRoot = do
 countFiles :: FsItem -> Integer
 countFiles dir@(FsDirectory {}) = sum $ map countFiles (dir ^. childItems)
 countFiles (FsFile {}) = 1
+
+ext2Debug :: Handle -> IO ()
+ext2Debug handle = do
+  superblockOrErr <- fetchSuperblock handle
+  case superblockOrErr of
+    Left err -> error "Superblock failure."
+    Right superblock -> printSuperblockInfo handle superblock
 
 printSuperblockInfo :: Handle -> Superblock -> IO ()
 printSuperblockInfo handle superblock = do

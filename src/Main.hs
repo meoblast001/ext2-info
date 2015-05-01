@@ -19,6 +19,9 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [fileName] -> withFile fileName ReadMode
-                           (\handle -> (show <$> ext2Info handle) >>= putStrLn)
+    ["debug", fileName] -> withFile fileName ReadMode ext2Debug
+    [fileName] ->
+      let printInfo handle = (either show show <$> (ext2Info handle)) >>=
+                             putStrLn
+      in withFile fileName ReadMode printInfo
     _ -> error "Please specify a file name."
