@@ -25,6 +25,6 @@ blockGroupDescriptorConsistency
   :: BlockGroupDescriptor
   -> BlockGroupDescriptor
   -> IntegrityStatus EXT2Error
-blockGroupDescriptorConsistency x ((== x) -> True) = Consistent
-blockGroupDescriptorConsistency _ _ = Inconsistent InconsistentBGDT
+blockGroupDescriptorConsistency x ((== x) -> True) = Right ()
+blockGroupDescriptorConsistency _ _ = Left InconsistentBGDT
 {-# INLINE blockGroupDescriptorConsistency #-}

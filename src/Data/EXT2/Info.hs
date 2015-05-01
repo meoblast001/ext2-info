@@ -40,7 +40,7 @@ ext2Info handle = do
 
 generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->
                 IO EXT2Info
-generateInfo handle sb bgdTable fsRoot = do
+generateInfo _ sb bgdTable fsRoot = do
   return EXT2Info {
       ext2TotalSize = sb ^. to fileSystemSize,
       ext2UsedFileSpaceSize = sb ^. to fileSystemSize -

@@ -21,14 +21,14 @@ import Data.EXT2.Superblock
 
 -- | Given a 'Superblock', ensure that its magic number is as-expected.
 superblockMagicCheck :: Superblock -> IntegrityStatus EXT2Error
-superblockMagicCheck (checkIdent -> Left e) = Inconsistent e
-superblockMagicCheck _ = Consistent
+superblockMagicCheck (checkIdent -> Left e) = Left e
+superblockMagicCheck _ = Right ()
 {-# INLINE superblockMagicCheck #-}
 
 -- | Ensure consistency of two 'Superblock's.
 --
 -- This is given for free by 'Superblock'\'s 'Eq' instance.
 superblockConsistency :: Superblock -> Superblock -> IntegrityStatus EXT2Error
-superblockConsistency x ((== x) -> True) = Consistent
-superblockConsistency _ _ = Inconsistent InconsistentSuperblocks
+superblockConsistency x ((== x) -> True) = Right ()
+superblockConsistency _ _ = Left InconsistentSuperblocks
 {-# INLINE superblockConsistency #-}
