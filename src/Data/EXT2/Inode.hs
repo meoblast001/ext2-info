@@ -129,8 +129,8 @@ getInode inodeNum =
         getTime = createTime <$> (fromIntegral <$> getWord32le :: Get Integer)
 
 usedInodes :: InodeUsageBitmap -> [Inode] -> [Inode]
-usedInodes inodeUsage allInodes =
-  map fst $ filter snd $ zip allInodes $ V.toList (inodeUsageBool inodeUsage)
+usedInodes (InodeUsageBitmap inodeUsageBits) allInodes =
+  map fst $ filter snd $ zip allInodes $ V.toList inodeUsageBits
 {-# INLINE usedInodes #-}
 
 fetchInodeBlocks :: Handle -> Superblock -> Inode -> IO LBS.ByteString

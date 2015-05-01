@@ -11,9 +11,8 @@
 module Data.EXT2.UsageBitmaps
 ( BlockUsageBitmap(..)
 , InodeUsageBitmap(..)
-, blockUsageBool
-, inodeUsageBool
 , fetchUsageBitmaps
+, fetchPartialUsageBitmaps
 ) where
 
 import Control.Lens
@@ -24,39 +23,36 @@ import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Superblock
 import Data.Functor
 import qualified Data.Vector as V
-import Data.Word
 import System.IO
 
-data BlockUsageBitmap = BlockUsageBitmap Integer (V.Vector Word8) deriving (Eq)
-data InodeUsageBitmap = InodeUsageBitmap Integer (V.Vector Word8) deriving (Eq)
+newtype BlockUsageBitmap = BlockUsageBitmap (V.Vector Bool) deriving (Eq)
+newtype InodeUsageBitmap = InodeUsageBitmap (V.Vector Bool) deriving (Eq)
 
 lenUsageBitmaps :: Integral a => Superblock -> a
 lenUsageBitmaps sb = sb ^. logBlockSize . to fromIntegral
 {-# INLINE lenUsageBitmaps #-}
 
 instance Show BlockUsageBitmap where
-  show bm@(BlockUsageBitmap len _) =
+  show (BlockUsageBitmap bits) =
     V.toList (V.concatMap (\bool -> V.fromList (if bool then "1" else "0"))
-                          (blockUsageBool bm)) ++ "(Len: " ++ show len ++ ")"
+                          bits)
 
 instance Show InodeUsageBitmap where
-  show bm@(InodeUsageBitmap len _) =
-    V.toList (V.concatMap (\bool -> V.fromList (if bool then"1" else "0"))
-                          (inodeUsageBool bm)) ++ "(Len: " ++ show len ++ ")"
+  show (InodeUsageBitmap bits) =
+    V.toList (V.concatMap (\bool -> V.fromList (if bool then"1" else "0")) bits)
 
-blockUsageBool :: BlockUsageBitmap -> V.Vector Bool
-blockUsageBool (BlockUsageBitmap len words') =
-  V.take (fromIntegral len) $ V.concatMap (V.fromList . toListBE) words'
-{-# INLINE blockUsageBool #-}
-
-inodeUsageBool :: InodeUsageBitmap -> V.Vector Bool
-inodeUsageBool (InodeUsageBitmap len words') =
-  V.take (fromIntegral len) $ V.concatMap (V.fromList . toListBE) words'
-{-# INLINE inodeUsageBool #-}
-
-fetchUsageBitmaps :: Superblock -> BlockGroupDescriptor -> Handle ->
+fetchUsageBitmaps :: Superblock -> BlockGroupDescriptorTable -> Handle ->
                      IO (BlockUsageBitmap, InodeUsageBitmap)
-fetchUsageBitmaps sb bgd handle = do
+fetchUsageBitmaps sb bgdTable handle = do
+  (block, inode) <- V.unzip <$> V.mapM
+                    (\bgd -> fetchPartialUsageBitmaps sb bgd handle) bgdTable
+  let blockBits = V.concatMap (\(BlockUsageBitmap bits) -> bits) block
+      inodeBits = V.concatMap (\(InodeUsageBitmap bits) -> bits) inode
+  return (BlockUsageBitmap blockBits, InodeUsageBitmap inodeBits)
+
+fetchPartialUsageBitmaps :: Superblock -> BlockGroupDescriptor -> Handle ->
+                            IO (BlockUsageBitmap, InodeUsageBitmap)
+fetchPartialUsageBitmaps sb bgd handle = do
   hSeek handle AbsoluteSeek $ blockOffset sb $ bgd ^. blockUsageAddr
   blockUsage <- runGet (getBlockUsageBitmap sb) <$>
                 LBS.hGet handle (lenUsageBitmaps sb)
@@ -66,13 +62,15 @@ fetchUsageBitmaps sb bgd handle = do
   return (blockUsage, inodeUsage)
 
 getBlockUsageBitmap :: Superblock -> Get BlockUsageBitmap
-getBlockUsageBitmap sb =
-  BlockUsageBitmap (sb ^. blocksPerGroup) <$>
-    V.replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
-{-# INLINE getBlockUsageBitmap #-}
+getBlockUsageBitmap sb = do
+  words' <- V.replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
+  let bits = V.concatMap (V.fromList . toListBE) words'
+  return $ BlockUsageBitmap (V.take (sb ^. blocksPerGroup . to fromIntegral)
+                                    bits)
 
 getInodeUsageBitmap :: Superblock -> Get InodeUsageBitmap
-getInodeUsageBitmap sb =
-  InodeUsageBitmap (sb ^. inodesPerGroup) <$>
-    V.replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
-{-# INLINE getInodeUsageBitmap #-}
+getInodeUsageBitmap sb = do
+  words' <- V.replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
+  let bits = V.concatMap (V.fromList . toListBE) words'
+  return $ InodeUsageBitmap (V.take (sb ^. inodesPerGroup . to fromIntegral)
+                                    bits)
