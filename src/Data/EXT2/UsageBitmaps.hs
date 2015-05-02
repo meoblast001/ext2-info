@@ -17,7 +17,7 @@ module Data.EXT2.UsageBitmaps
 
 import Control.Lens
 import Data.Binary.Get
-import Data.Bits.Bitwise (toListBE)
+import Data.Bits.Bitwise (toListLE)
 import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Superblock
@@ -64,13 +64,13 @@ fetchPartialUsageBitmaps sb bgd handle = do
 getBlockUsageBitmap :: Superblock -> Get BlockUsageBitmap
 getBlockUsageBitmap sb = do
   words' <- V.replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
-  let bits = V.concatMap (V.fromList . toListBE) words'
+  let bits = V.concatMap (V.fromList . toListLE) words'
   return $ BlockUsageBitmap (V.take (sb ^. blocksPerGroup . to fromIntegral)
                                     bits)
 
 getInodeUsageBitmap :: Superblock -> Get InodeUsageBitmap
 getInodeUsageBitmap sb = do
   words' <- V.replicateM (sb ^. logBlockSize . to fromIntegral) getWord8
-  let bits = V.concatMap (V.fromList . toListBE) words'
+  let bits = V.concatMap (V.fromList . toListLE) words'
   return $ InodeUsageBitmap (V.take (sb ^. inodesPerGroup . to fromIntegral)
                                     bits)

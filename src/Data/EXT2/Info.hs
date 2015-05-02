@@ -20,7 +20,9 @@ import Control.Lens
 import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Directory
 import Data.EXT2.Info.Types
+import Data.EXT2.Integrity.Inode
 import Data.EXT2.Superblock as Superblock
+import Data.EXT2.UsageBitmaps
 import Data.Functor
 import qualified Data.Vector as V
 import System.IO
@@ -32,11 +34,22 @@ ext2Info handle = do
     Left err -> return $ Left err
     Right superblock -> do
       bgdTable <- fetchBGDT superblock handle
+      usageBitmaps <- fetchUsageBitmaps superblock bgdTable handle
       fsTreeMay <- buildFsTree handle superblock bgdTable
       case fsTreeMay of
         Just fsTree ->
-          Right <$> generateInfo handle superblock bgdTable fsTree
+          maybe (Right <$> generateInfo handle superblock bgdTable fsTree)
+                (return . Left)
+                (checkConsistency superblock bgdTable usageBitmaps fsTree)
         Nothing -> return $ Left GeneralError
+
+checkConsistency :: Superblock -> BlockGroupDescriptorTable ->
+                    (BlockUsageBitmap, InodeUsageBitmap) -> FsItem ->
+                    Maybe EXT2Error
+checkConsistency _ _ (_, inodeUsage) fsTree =
+  either Just (const Nothing) doCheck
+  where doCheck = do
+          reachableInodesUsed inodeUsage fsTree
 
 generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->
                 IO EXT2Info
@@ -62,7 +75,7 @@ ext2Debug :: Handle -> IO ()
 ext2Debug handle = do
   superblockOrErr <- fetchSuperblock handle
   case superblockOrErr of
-    Left err -> error "Superblock failure."
+    Left _ -> error "Superblock failure."
     Right superblock -> printSuperblockInfo handle superblock
 
 printSuperblockInfo :: Handle -> Superblock -> IO ()
