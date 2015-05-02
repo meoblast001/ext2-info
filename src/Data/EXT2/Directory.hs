@@ -131,8 +131,10 @@ buildFsTreeRecur handle sb bgdTable itemName inode'
 countFiles :: FsItem -> Integer
 countFiles dir@(FsDirectory {}) = sum $ map countFiles (dir ^. childItems)
 countFiles (FsFile {}) = 1
+{-# INLINE countFiles #-}
 
 countDirectories :: FsItem -> Integer
 countDirectories dir@(FsDirectory {}) =
   (sum $ map countFiles (dir ^. childItems)) + 1
 countDirectories (FsFile {}) = 0
+{-# INLINE countDirectories #-}
