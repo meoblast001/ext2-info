@@ -67,10 +67,6 @@ generateInfo _ sb bgdTable fsRoot = do
       ext2StateClean = sb ^. state == StateClean
     }
 
-countFiles :: FsItem -> Integer
-countFiles dir@(FsDirectory {}) = sum $ map countFiles (dir ^. childItems)
-countFiles (FsFile {}) = 1
-
 ext2Debug :: Handle -> IO ()
 ext2Debug handle = do
   superblockOrErr <- fetchSuperblock handle
