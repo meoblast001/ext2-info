@@ -134,5 +134,5 @@ countFiles (FsFile {}) = 1
 
 countDirectories :: FsItem -> Integer
 countDirectories dir@(FsDirectory {}) =
-  sum $ map countFiles (dir ^. childItems) + 1
+  (sum $ map countFiles (dir ^. childItems)) + 1
 countDirectories (FsFile {}) = 0
