@@ -14,24 +14,41 @@
 --
 -- Functions for checking the integrity of 'Inode' and in some cases
 -- 'Directory'.
-module Data.EXT2.Integrity.Inode ( reachableInodesUsed ) where
+module Data.EXT2.Integrity.Inode
+( usedInodesReachable
+, reachableInodesUsed
+) where
 
 import Control.Lens
 import Data.EXT2.Directory
 import Data.EXT2.Info.Types
 import Data.EXT2.Inode
 import Data.EXT2.UsageBitmaps
+import Data.List ((\\))
 import qualified Data.Vector as V
 
-reachableInodesUsed :: InodeUsageBitmap -> FsItem -> Either EXT2Error ()
-reachableInodesUsed usageBitmap@(InodeUsageBitmap usageBits)
-                    (FsDirectory _ inode' children') =
-  maybe (Left ReachableUnusedInode)
-        (\usage -> if usage
-                   then mapM_ (reachableInodesUsed usageBitmap) children'
-                   else Left ReachableUnusedInode)
-        (usageBits V.!? fromIntegral (inode' ^. inodeNumber - 1))
-reachableInodesUsed (InodeUsageBitmap usageBits) (FsFile _ inode') =
-  maybe (Left ReachableUnusedInode)
-        (\usage -> if usage then Right () else Left ReachableUnusedInode)
-        (usageBits V.!? fromIntegral (inode' ^. inodeNumber - 1))
+usedInodesReachable :: InodeUsageBitmap -> FsItem -> IntegrityStatus EXT2Error
+usedInodesReachable usageBitmap fsTree =
+  let reachNums =  V.fromList $ reachableInodeNumbers fsTree
+      -- Inodes 1 - 10 are reserved in EXT2.
+      usedInodeNums = usedInodeNumbers usageBitmap \\ [1..10]
+      good = and $ map (`V.elem` reachNums) usedInodeNums
+  in if good then Right () else Left UnreachableUsedInode
+
+reachableInodesUsed :: InodeUsageBitmap -> FsItem -> IntegrityStatus EXT2Error
+reachableInodesUsed (InodeUsageBitmap usageBits) fsTree =
+  let reachNums = reachableInodeNumbers fsTree
+      good = and $ map
+             (\num -> maybe False id $ usageBits V.!? fromIntegral (num - 1))
+             reachNums
+  in if good then Right () else Left ReachableUnusedInode
+
+reachableInodeNumbers :: FsItem -> [InodeNumber]
+reachableInodeNumbers (FsDirectory _ inode' children') =
+  (inode' ^. inodeNumber):(concatMap reachableInodeNumbers children')
+reachableInodeNumbers (FsFile _ inode') = [inode' ^. inodeNumber]
+
+usedInodeNumbers :: InodeUsageBitmap -> [InodeNumber]
+usedInodeNumbers (InodeUsageBitmap usageBits) =
+  V.toList $ V.filter (/= 0) $ V.imap
+    (\idx bit -> if bit then fromIntegral idx + 1 else 0) usageBits

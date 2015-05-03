@@ -61,6 +61,7 @@ checkConsistency sb sbCopies bgdTable bgdTableCopies (_, inodeUsage) fsTree =
   where doCheck = do
           superblockCopiesConsistency sb sbCopies
           bgdTableCopiesConsistency bgdTable bgdTableCopies
+          usedInodesReachable inodeUsage fsTree
           reachableInodesUsed inodeUsage fsTree
 
 generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->
