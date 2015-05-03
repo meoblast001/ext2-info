@@ -12,18 +12,12 @@
 --
 -- Functions for checking the integrity of 'Superblock's.
 module Data.EXT2.Integrity.Superblock
-( superblockMagicCheck
-, superblockConsistency
+( superblockConsistency
+, superblockCopiesConsistency
 ) where
 
 import Data.EXT2.Info.Types
 import Data.EXT2.Superblock
-
--- | Given a 'Superblock', ensure that its magic number is as-expected.
-superblockMagicCheck :: Superblock -> IntegrityStatus EXT2Error
-superblockMagicCheck (checkIdent -> Left e) = Left e
-superblockMagicCheck _ = Right ()
-{-# INLINE superblockMagicCheck #-}
 
 -- | Ensure consistency of two 'Superblock's.
 --
@@ -32,3 +26,9 @@ superblockConsistency :: Superblock -> Superblock -> IntegrityStatus EXT2Error
 superblockConsistency x ((== x) -> True) = Right ()
 superblockConsistency _ _ = Left InconsistentSuperblocks
 {-# INLINE superblockConsistency #-}
+
+-- | Given a primary superblock and superblock copies, ensures that the
+-- superblocks are consistent with the primary superblock.
+superblockCopiesConsistency :: Superblock -> [Superblock] ->
+                            IntegrityStatus EXT2Error
+superblockCopiesConsistency primary = mapM_ (superblockConsistency primary)

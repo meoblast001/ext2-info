@@ -19,6 +19,7 @@ module Data.EXT2.Superblock
 , OperatingSystem(..)
 , Superblock(..)
 , fetchSuperblock
+, fetchSuperblockCopies
 , numBlockGroups
 , blockOffset
 , checkIdent
@@ -43,10 +44,12 @@ import Data.EXT2.Internal.Util (createTime)
 import Data.UnixTime
 import System.IO
 
-data FileSystemState = StateClean | StateErrors deriving (Eq, Show)
+data FileSystemState = StateClean | StateErrors | StateUnknown
+  deriving (Eq, Show)
 data ErrorHandlingMethod =
-  MethodIgnore | MethodRemount | MethodPanic deriving (Eq, Show)
-data OperatingSystem = Linux | HURD | MASIX | FreeBSD | Other deriving (Eq, Show)
+  MethodIgnore | MethodRemount | MethodPanic | MethodUnknown deriving (Eq, Show)
+data OperatingSystem = Linux | HURD | MASIX | FreeBSD | OSOther | OSUnknown
+  deriving (Eq, Show)
 
 data Superblock =
   Superblock {
@@ -104,6 +107,8 @@ data Superblock =
 
 makeLensesWith namespaceLensRules ''Superblock
 
+type SuperblockCopies = [Superblock]
+
 lenSuperblock :: Integral a => a
 lenSuperblock = 1024
 {-# INLINE lenSuperblock #-}
@@ -112,6 +117,33 @@ fetchSuperblock :: Handle -> IO (Either EXT2Error Superblock)
 fetchSuperblock handle = do
   hSeek handle AbsoluteSeek 1024
   checkIdent <$> runGet getSuperblock <$> LBS.hGet handle lenSuperblock
+
+fetchSuperblockCopies :: Handle -> Superblock ->
+                         IO (Either EXT2Error SuperblockCopies)
+fetchSuperblockCopies handle sb = do
+  first <- fetchOneCopy 1
+  -- Returns a list if IO when an IO containing a list is needed. Therefore
+  -- sequence is used.
+  rest <- sequence $ recurFetchSparseCopies 1 3 5 7
+  -- Similarly, Either a [b] needed instead of [Either a b].
+  return $ sequence (first:rest)
+  where recurFetchSparseCopies bgNum nextPow3 nextPow5 nextPow7
+          | bgNum >= numBlockGroups sb = []
+          | bgNum == nextPow3 =
+              (fetchOneCopy bgNum):(recurFetchSparseCopies (bgNum + 1)
+                                   (nextPow3 * 3) nextPow5 nextPow7)
+          | bgNum == nextPow5 =
+              (fetchOneCopy bgNum):(recurFetchSparseCopies (bgNum + 1)
+                                   nextPow3 (nextPow5 * 5) nextPow7)
+          | bgNum == nextPow7 =
+              (fetchOneCopy bgNum):(recurFetchSparseCopies (bgNum + 1)
+                                   nextPow3 nextPow5 (nextPow7 * 7))
+          | otherwise =
+              recurFetchSparseCopies (bgNum + 1) nextPow3 nextPow5 nextPow7
+        fetchOneCopy bgNum = do
+          let startPos = blockOffset sb (bgNum * sb ^. blocksPerGroup + 1)
+          hSeek handle AbsoluteSeek startPos
+          checkIdent <$> runGet getSuperblock <$> LBS.hGet handle lenSuperblock
 
 getSuperblock :: Get Superblock
 getSuperblock =
@@ -138,14 +170,14 @@ checkIdent superblock
 getFsState :: Integer -> FileSystemState
 getFsState 1 = StateClean
 getFsState 2 = StateErrors
-getFsState _ = error "Unknown filesystem state."
+getFsState _ = StateUnknown
 {-# INLINE getFsState #-}
 
 getErrorHandlingMethod :: Integer -> ErrorHandlingMethod
 getErrorHandlingMethod 1 = MethodIgnore
 getErrorHandlingMethod 2 = MethodRemount
 getErrorHandlingMethod 3 = MethodPanic
-getErrorHandlingMethod _ = error "Unknown error handling method."
+getErrorHandlingMethod _ = MethodUnknown
 {-# INLINE getErrorHandlingMethod #-}
 
 getOS :: Integer -> OperatingSystem
@@ -153,8 +185,8 @@ getOS 0 = Linux
 getOS 1 = HURD
 getOS 2 = MASIX
 getOS 3 = FreeBSD
-getOS 4 = Other
-getOS _ = error "Unknown operating system."
+getOS 4 = OSOther
+getOS _ = OSUnknown
 {-# INLINE getOS #-}
 
 numBlockGroups :: Superblock -> Integer
