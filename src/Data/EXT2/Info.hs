@@ -20,6 +20,7 @@ import Control.Lens
 import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Directory
 import Data.EXT2.Info.Types
+import Data.EXT2.Integrity.BlockGroupDescriptor
 import Data.EXT2.Integrity.Inode
 import Data.EXT2.Integrity.Superblock
 import Data.EXT2.Superblock as Superblock
@@ -39,6 +40,7 @@ ext2Info handle = do
         Left err -> return $ Left err
         Right superblockCopies -> do
           bgdTable <- fetchBGDT superblock handle
+          bgdTableCopies <- fetchBGDTCopies superblock superblockCopies handle
           usageBitmaps <- fetchUsageBitmaps superblock bgdTable handle
           fsTreeMay <- buildFsTree handle superblock bgdTable
           case fsTreeMay of
@@ -46,17 +48,19 @@ ext2Info handle = do
               maybe (Right <$> generateInfo handle superblock bgdTable fsTree)
                     (return . Left)
                     (checkConsistency superblock superblockCopies bgdTable
-                                      usageBitmaps fsTree)
+                                      bgdTableCopies usageBitmaps fsTree)
             Nothing -> return $ Left GeneralError
 
 checkConsistency :: Superblock -> SuperblockCopies ->
                     BlockGroupDescriptorTable ->
+                    BlockGroupDescriptorTableCopies ->
                     (BlockUsageBitmap, InodeUsageBitmap) -> FsItem ->
                     Maybe EXT2Error
-checkConsistency sb sbCopies _ (_, inodeUsage) fsTree =
+checkConsistency sb sbCopies bgdTable bgdTableCopies (_, inodeUsage) fsTree =
   either Just (const Nothing) doCheck
   where doCheck = do
           superblockCopiesConsistency sb sbCopies
+          bgdTableCopiesConsistency bgdTable bgdTableCopies
           reachableInodesUsed inodeUsage fsTree
 
 generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->
