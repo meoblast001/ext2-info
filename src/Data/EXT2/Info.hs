@@ -66,7 +66,7 @@ checkConsistency sb sbCopies bgdTable bgdTableCopies (_, inodeUsage) fsTree =
 
 generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->
                 IO EXT2Info
-generateInfo _ sb bgdTable fsRoot = do
+generateInfo _ sb bgdTable fsRoot =
   return EXT2Info {
       ext2TotalSize = sb ^. to fileSystemSize,
       ext2UsedFileSpaceSize = sb ^. to fileSystemSize -
@@ -79,6 +79,7 @@ generateInfo _ sb bgdTable fsRoot = do
       ext2BlockSize = sb ^. logBlockSize,
       ext2StateClean = sb ^. state == StateClean
     }
+{-# INLINE generateInfo #-}
 
 ext2Debug :: Handle -> IO ()
 ext2Debug handle = do

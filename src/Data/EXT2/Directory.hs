@@ -89,7 +89,7 @@ getDirectory bytestring =
       used = entry ^. inodeRef /= 0
   in if used && LBS.length bytestring - advanceLen > 0
      then entry : getDirectory (LBS.drop advanceLen bytestring)
-     else if used then [entry] else []
+     else [entry | used]
 
 getDirectoryEntry :: Get DirectoryEntry
 getDirectoryEntry = do
@@ -135,6 +135,6 @@ countFiles (FsFile {}) = 1
 
 countDirectories :: FsItem -> Integer
 countDirectories dir@(FsDirectory {}) =
-  (sum $ map countFiles (dir ^. childItems)) + 1
+  sum (map countFiles (dir ^. childItems)) + 1
 countDirectories (FsFile {}) = 0
 {-# INLINE countDirectories #-}

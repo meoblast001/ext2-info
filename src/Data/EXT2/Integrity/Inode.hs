@@ -1,6 +1,3 @@
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.EXT2.Integrity.Inode
@@ -25,6 +22,7 @@ import Data.EXT2.Info.Types
 import Data.EXT2.Inode
 import Data.EXT2.UsageBitmaps
 import Data.List ((\\))
+import Data.Maybe
 import qualified Data.Vector as V
 
 usedInodesReachable :: InodeUsageBitmap -> FsItem -> IntegrityStatus EXT2Error
@@ -32,20 +30,20 @@ usedInodesReachable usageBitmap fsTree =
   let reachNums =  V.fromList $ reachableInodeNumbers fsTree
       -- Inodes 1 - 10 are reserved in EXT2.
       usedInodeNums = usedInodeNumbers usageBitmap \\ [1..10]
-      good = and $ map (`V.elem` reachNums) usedInodeNums
+      good = all (`V.elem` reachNums) usedInodeNums
   in if good then Right () else Left UnreachableUsedInode
 
 reachableInodesUsed :: InodeUsageBitmap -> FsItem -> IntegrityStatus EXT2Error
 reachableInodesUsed (InodeUsageBitmap usageBits) fsTree =
   let reachNums = reachableInodeNumbers fsTree
-      good = and $ map
-             (\num -> maybe False id $ usageBits V.!? fromIntegral (num - 1))
+      good = all
+             (\num -> fromMaybe False $ usageBits V.!? fromIntegral (num - 1))
              reachNums
   in if good then Right () else Left ReachableUnusedInode
 
 reachableInodeNumbers :: FsItem -> [InodeNumber]
 reachableInodeNumbers (FsDirectory _ inode' children') =
-  (inode' ^. inodeNumber):(concatMap reachableInodeNumbers children')
+  (inode' ^. inodeNumber) : concatMap reachableInodeNumbers children'
 reachableInodeNumbers (FsFile _ inode') = [inode' ^. inodeNumber]
 
 usedInodeNumbers :: InodeUsageBitmap -> [InodeNumber]

@@ -131,7 +131,7 @@ fetchSuperblock handle = do
              <$> LBS.hGet handle lenSuperblock
   where updateBlock superblock = if superblock ^. logBlockSize > 1024
                                  then superblock & onBlock .~ 0
-                                 else (superblock & onBlock .~ 1)
+                                 else superblock & onBlock .~ 1
 
 fetchSuperblockCopies :: Handle -> Superblock ->
                          IO (Either EXT2Error SuperblockCopies)
@@ -146,14 +146,14 @@ fetchSuperblockCopies handle sb = do
   where recurFetchSparseCopies bgNum nextPow3 nextPow5 nextPow7
           | bgNum >= numBlockGroups sb = []
           | bgNum == nextPow3 =
-              (fetchOneCopy bgNum):(recurFetchSparseCopies (bgNum + 1)
-                                   (nextPow3 * 3) nextPow5 nextPow7)
+              fetchOneCopy bgNum : recurFetchSparseCopies (bgNum + 1)
+                                   (nextPow3 * 3) nextPow5 nextPow7
           | bgNum == nextPow5 =
-              (fetchOneCopy bgNum):(recurFetchSparseCopies (bgNum + 1)
-                                   nextPow3 (nextPow5 * 5) nextPow7)
+              fetchOneCopy bgNum : recurFetchSparseCopies (bgNum + 1)
+                                   nextPow3 (nextPow5 * 5) nextPow7
           | bgNum == nextPow7 =
-              (fetchOneCopy bgNum):(recurFetchSparseCopies (bgNum + 1)
-                                   nextPow3 nextPow5 (nextPow7 * 7))
+              fetchOneCopy bgNum : recurFetchSparseCopies (bgNum + 1)
+                                   nextPow3 nextPow5 (nextPow7 * 7)
           | otherwise =
               recurFetchSparseCopies (bgNum + 1) nextPow3 nextPow5 nextPow7
         fetchOneCopy bgNum = do

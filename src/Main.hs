@@ -21,7 +21,6 @@ main = do
   case args of
     ["debug", fileName] -> withFile fileName ReadMode ext2Debug
     [fileName] ->
-      let printInfo handle = (either show show <$> (ext2Info handle)) >>=
-                             putStrLn
+      let printInfo handle = (either show show <$> ext2Info handle) >>= putStrLn
       in withFile fileName ReadMode printInfo
     _ -> error "Please specify a file name."

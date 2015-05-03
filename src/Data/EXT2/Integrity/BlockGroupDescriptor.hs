@@ -36,9 +36,8 @@ bgdTableConsistency :: BlockGroupDescriptorTable -> BlockGroupDescriptorTable ->
                        IntegrityStatus EXT2Error
 bgdTableConsistency lhs rhs =
   if V.length lhs == V.length rhs
-    then if V.and (V.zipWith (==) lhs rhs) then Right ()
-                                           else Left InconsistentBGDT
-    else Left InconsistentBGDT
+     && V.and (V.zipWith (==) lhs rhs) then Right ()
+  else Left InconsistentBGDT
 {-# INLINE bgdTableConsistency #-}
 
 -- | Given a primary superblock and superblock copies, ensures that the
