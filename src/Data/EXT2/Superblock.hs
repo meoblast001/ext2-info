@@ -32,7 +32,7 @@ module Data.EXT2.Superblock
 , magic, mTime, logFragSize, logBlockSize, lastCheck, inodesPerGroup
 , inodesCount, freeInodesCount, freeBlocksCount, fragsPerGroup, firstDataBlock
 , errors, defResuid, defResgid, creatorOs, checkInterval, blocksPerGroup
-, blocksCount
+, blocksCount, onBlock
 ) where
 
 import Control.Applicative
@@ -56,7 +56,9 @@ data RevisionLevel = GoodOldRev | DynamicRev | UnknownRev deriving (Eq, Show)
 
 data Superblock =
   Superblock {
-    sbInodesCount :: Integer
+    sbOnBlock :: Integer
+    -- ^ Block on which this superblock is located. Value not in volume.
+  , sbInodesCount :: Integer
     -- ^ Total number of inodes in the file system
   , sbBlocksCount :: Integer
     -- ^ Total number of blocks in the file system
@@ -125,7 +127,11 @@ lenSuperblock = 1024
 fetchSuperblock :: Handle -> IO (Either EXT2Error Superblock)
 fetchSuperblock handle = do
   hSeek handle AbsoluteSeek 1024
-  checkIdent <$> runGet getSuperblock <$> LBS.hGet handle lenSuperblock
+  checkIdent <$> updateBlock <$> runGet (getSuperblock 0)
+             <$> LBS.hGet handle lenSuperblock
+  where updateBlock superblock = if superblock ^. logBlockSize > 1024
+                                 then superblock & onBlock .~ 0
+                                 else (superblock & onBlock .~ 1)
 
 fetchSuperblockCopies :: Handle -> Superblock ->
                          IO (Either EXT2Error SuperblockCopies)
@@ -151,14 +157,16 @@ fetchSuperblockCopies handle sb = do
           | otherwise =
               recurFetchSparseCopies (bgNum + 1) nextPow3 nextPow5 nextPow7
         fetchOneCopy bgNum = do
-          let startPos = blockOffset sb (bgNum * sb ^. blocksPerGroup + 1)
+          let blockNum = bgNum * sb ^. blocksPerGroup + 1
+              startPos = blockOffset sb blockNum
           hSeek handle AbsoluteSeek startPos
-          checkIdent <$> runGet getSuperblock <$> LBS.hGet handle lenSuperblock
+          checkIdent <$> runGet (getSuperblock blockNum)
+                     <$> LBS.hGet handle lenSuperblock
 
-getSuperblock :: Get Superblock
-getSuperblock =
-  Superblock <$> getInt <*> getInt <*> getInt <*> getInt <*> getInt <*> getInt
-             <*> ((\x -> 2 ^ (x + 10)) <$> getInt)
+getSuperblock :: Integer -> Get Superblock
+getSuperblock blockNumber =
+  Superblock blockNumber <$> getInt <*> getInt <*> getInt <*> getInt <*> getInt
+             <*> getInt <*> ((\x -> 2 ^ (x + 10)) <$> getInt)
              <*> ((\x -> 2 ^ (x + 10)) <$> getInt)
              <*> getInt <*> getInt <*> getInt
              <*> getTime <*> getTime

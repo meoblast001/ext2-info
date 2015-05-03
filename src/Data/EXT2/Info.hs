@@ -86,9 +86,9 @@ printSuperblockInfo :: Handle -> Superblock -> IO ()
 printSuperblockInfo handle superblock = do
   putStrLn "Superblock is:"
   print superblock
-  printSuperblockCopyInfo handle superblock
   bgdTable <- fetchBGDT superblock handle
   V.zipWithM_ (printBGDInfo handle superblock) bgdTable (V.enumFromN 0 (V.length bgdTable))
+  printSuperblockCopyInfo handle superblock
   printRootDir handle superblock bgdTable
 
 printSuperblockCopyInfo :: Handle -> Superblock -> IO ()
@@ -97,7 +97,11 @@ printSuperblockCopyInfo handle superblock = do
   superblocks <- fetchSuperblockCopies handle superblock
   case superblocks of
     Left ext2error -> print ext2error
-    Right copies -> mapM_ print copies
+    Right copies -> do
+      mapM_ print copies
+      bgdTableCopies <- fetchBGDTCopies superblock copies handle
+      mapM_ (\tbl -> V.zipWithM_ (printBGDInfo handle superblock) tbl
+                                 (V.enumFromN 0 (V.length tbl))) bgdTableCopies
 
 printBGDInfo :: Handle -> Superblock -> BlockGroupDescriptor -> Integer -> IO ()
 printBGDInfo _ _ bgd num = do

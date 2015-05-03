@@ -19,7 +19,9 @@ module Data.EXT2.BlockGroupDescriptor
 ( DescriptorNumber
 , BlockGroupDescriptor(..)
 , BlockGroupDescriptorTable
+, BlockGroupDescriptorTableCopies
 , fetchBGDT
+, fetchBGDTCopies
 
 -- * 'BlockGroupDescriptor' Lenses
 , reserve, pad, numDirectories, numUnallocInodes, numUnallocBlocks
@@ -54,6 +56,7 @@ data BlockGroupDescriptor =
 makeLensesWith namespaceLensRules ''BlockGroupDescriptor
 
 type BlockGroupDescriptorTable = V.Vector BlockGroupDescriptor
+type BlockGroupDescriptorTableCopies = [BlockGroupDescriptorTable]
 
 lenBlockGroupDescriptor :: Integral a => a
 lenBlockGroupDescriptor = 32
@@ -68,9 +71,21 @@ fetchBGDT superblock handle = do
   hSeek handle AbsoluteSeek bgdtLoc
   runGet (getBGDT $ numBlockGroups superblock) <$> LBS.hGet handle bgdtSize
 
+fetchBGDTCopies :: Superblock -> SuperblockCopies -> Handle ->
+                   IO BlockGroupDescriptorTableCopies
+fetchBGDTCopies superblock sbCopies handle =
+  mapM (\copy -> fetchOneCopy (copy ^. onBlock + 1)) sbCopies
+  where fetchOneCopy blockNum = do
+          let bgdtLoc = blockOffset superblock blockNum
+              bgdtSize = fromIntegral (numBlockGroups superblock *
+                                       lenBlockGroupDescriptor)
+          hSeek handle AbsoluteSeek bgdtLoc
+          runGet (getBGDT $ numBlockGroups superblock) <$>
+                 LBS.hGet handle bgdtSize
+
 getBGDT :: Integer -> Get BlockGroupDescriptorTable
 getBGDT blockGroups =
-  V.mapM getBlockGroupDescriptor (V.enumFromTo 1 blockGroups)
+  V.mapM getBlockGroupDescriptor (V.enumFromTo 0 (blockGroups - 1))
 {-# INLINE getBGDT #-}
 
 getBlockGroupDescriptor :: DescriptorNumber -> Get BlockGroupDescriptor

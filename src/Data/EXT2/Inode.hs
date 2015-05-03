@@ -98,7 +98,7 @@ lenInode = 128
 
 fetchInodeTable :: Superblock -> BlockGroupDescriptor -> Handle -> IO [Inode]
 fetchInodeTable sb bgd handle = do
-  let startInodeNumber = (bgd ^. groupNumber - 1) * sb ^. inodesPerGroup
+  let startInodeNumber = bgd ^. groupNumber * sb ^. inodesPerGroup
   hSeek handle AbsoluteSeek $ blockOffset sb $ bgd ^. inodeTblStartAddr
   mapM (\num -> runGet (getInode (startInodeNumber + num)) <$>
                 LBS.hGet handle lenInode) [1..sb ^. inodesPerGroup]
