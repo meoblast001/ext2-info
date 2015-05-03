@@ -21,6 +21,7 @@ import Data.EXT2.BlockGroupDescriptor
 import Data.EXT2.Directory
 import Data.EXT2.Info.Types
 import Data.EXT2.Integrity.Inode
+import Data.EXT2.Integrity.Superblock
 import Data.EXT2.Superblock as Superblock
 import Data.EXT2.UsageBitmaps
 import Data.Functor
@@ -33,22 +34,29 @@ ext2Info handle = do
   case superblockOrErr of
     Left err -> return $ Left err
     Right superblock -> do
-      bgdTable <- fetchBGDT superblock handle
-      usageBitmaps <- fetchUsageBitmaps superblock bgdTable handle
-      fsTreeMay <- buildFsTree handle superblock bgdTable
-      case fsTreeMay of
-        Just fsTree ->
-          maybe (Right <$> generateInfo handle superblock bgdTable fsTree)
-                (return . Left)
-                (checkConsistency superblock bgdTable usageBitmaps fsTree)
-        Nothing -> return $ Left GeneralError
+      superblockCopiesOrErr <- fetchSuperblockCopies handle superblock
+      case superblockCopiesOrErr of
+        Left err -> return $ Left err
+        Right superblockCopies -> do
+          bgdTable <- fetchBGDT superblock handle
+          usageBitmaps <- fetchUsageBitmaps superblock bgdTable handle
+          fsTreeMay <- buildFsTree handle superblock bgdTable
+          case fsTreeMay of
+            Just fsTree ->
+              maybe (Right <$> generateInfo handle superblock bgdTable fsTree)
+                    (return . Left)
+                    (checkConsistency superblock superblockCopies bgdTable
+                                      usageBitmaps fsTree)
+            Nothing -> return $ Left GeneralError
 
-checkConsistency :: Superblock -> BlockGroupDescriptorTable ->
+checkConsistency :: Superblock -> SuperblockCopies ->
+                    BlockGroupDescriptorTable ->
                     (BlockUsageBitmap, InodeUsageBitmap) -> FsItem ->
                     Maybe EXT2Error
-checkConsistency _ _ (_, inodeUsage) fsTree =
+checkConsistency sb sbCopies _ (_, inodeUsage) fsTree =
   either Just (const Nothing) doCheck
   where doCheck = do
+          superblockCopiesConsistency sb sbCopies
           reachableInodesUsed inodeUsage fsTree
 
 generateInfo :: Handle -> Superblock -> BlockGroupDescriptorTable -> FsItem ->

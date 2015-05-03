@@ -18,6 +18,7 @@ module Data.EXT2.Superblock
 , ErrorHandlingMethod(..)
 , OperatingSystem(..)
 , Superblock(..)
+, SuperblockCopies
 , fetchSuperblock
 , fetchSuperblockCopies
 , numBlockGroups

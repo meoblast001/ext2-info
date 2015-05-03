@@ -30,5 +30,6 @@ superblockConsistency _ _ = Left InconsistentSuperblocks
 -- | Given a primary superblock and superblock copies, ensures that the
 -- superblocks are consistent with the primary superblock.
 superblockCopiesConsistency :: Superblock -> [Superblock] ->
-                            IntegrityStatus EXT2Error
+                               IntegrityStatus EXT2Error
 superblockCopiesConsistency primary = mapM_ (superblockConsistency primary)
+{-# INLINE superblockCopiesConsistency #-}
