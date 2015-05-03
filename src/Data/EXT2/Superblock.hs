@@ -52,6 +52,7 @@ data ErrorHandlingMethod =
   MethodIgnore | MethodRemount | MethodPanic | MethodUnknown deriving (Eq, Show)
 data OperatingSystem = Linux | HURD | MASIX | FreeBSD | OSOther | OSUnknown
   deriving (Eq, Show)
+data RevisionLevel = GoodOldRev | DynamicRev | UnknownRev deriving (Eq, Show)
 
 data Superblock =
   Superblock {
@@ -99,7 +100,7 @@ data Superblock =
     -- ^ Interval between forced consistency checks
   , sbCreatorOs :: OperatingSystem
     -- ^ Operating system ID
-  , sbRevLevel :: Integer
+  , sbRevLevel :: RevisionLevel
     -- ^ Major portion of version
   , sbDefResuid :: Integer
     -- ^ User ID that can use reserved blocks
@@ -159,7 +160,8 @@ getSuperblock =
              <*> (getFsState <$> getShort)
              <*> (getErrorHandlingMethod <$> getShort)
              <*> getShort <*> getTime <*> getTime
-             <*> (getOS <$> getInt) <*> getInt <*> getShort <*> getShort
+             <*> (getOS <$> getInt) <*> (getRevLevel <$> getInt) <*> getShort
+             <*> getShort
   where getInt = toInteger <$> getWord32le
         getShort = toInteger <$> getWord16le
         getTime = createTime <$> (fromIntegral <$> getWord32le :: Get Integer)
@@ -191,6 +193,11 @@ getOS 3 = FreeBSD
 getOS 4 = OSOther
 getOS _ = OSUnknown
 {-# INLINE getOS #-}
+
+getRevLevel :: Integer -> RevisionLevel
+getRevLevel 0 = GoodOldRev
+getRevLevel 1 = DynamicRev
+getRevLevel _ = UnknownRev
 
 numBlockGroups :: Superblock -> Integer
 numBlockGroups superblock =
