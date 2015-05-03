@@ -42,6 +42,7 @@ import qualified Data.ByteString.Lazy as LBS
 import Data.EXT2.Info.Types (EXT2Error(..))
 import Data.EXT2.Internal.LensHacks
 import Data.EXT2.Internal.Util (createTime)
+import Data.Monoid
 import Data.UnixTime
 import System.IO
 
@@ -122,12 +123,13 @@ fetchSuperblock handle = do
 fetchSuperblockCopies :: Handle -> Superblock ->
                          IO (Either EXT2Error SuperblockCopies)
 fetchSuperblockCopies handle sb = do
-  first <- fetchOneCopy 1
+  first <- if numBlockGroups sb > 1
+           then return <$> fetchOneCopy 1 else return mempty
   -- Returns a list if IO when an IO containing a list is needed. Therefore
   -- sequence is used.
   rest <- sequence $ recurFetchSparseCopies 1 3 5 7
   -- Similarly, Either a [b] needed instead of [Either a b].
-  return $ sequence (first:rest)
+  return $ sequence (first ++ rest)
   where recurFetchSparseCopies bgNum nextPow3 nextPow5 nextPow7
           | bgNum >= numBlockGroups sb = []
           | bgNum == nextPow3 =
