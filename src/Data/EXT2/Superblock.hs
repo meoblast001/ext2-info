@@ -106,9 +106,15 @@ data Superblock =
     -- ^ User ID that can use reserved blocks
   , sbDefResgid :: Integer
     -- ^ Group ID that can use reserved blocks
-  } deriving (Eq, Show)
+  } deriving (Show)
 
 makeLensesWith namespaceLensRules ''Superblock
+
+-- Based on code in super.c of e2fsprogs. May need changed to handle superblock
+-- extensions.
+instance Eq Superblock where
+  lhs == rhs = lhs ^. inodesCount == rhs ^. inodesCount &&
+               lhs ^. blocksCount == rhs ^. blocksCount
 
 type SuperblockCopies = [Superblock]
 
